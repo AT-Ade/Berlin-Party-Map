@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -7,11 +9,11 @@ plugins {
 }
 
 android {
-    namespace = "de.syntax_institut.projektwoche1"
+    namespace = "com.example.berlinpartymap"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "de.syntax_institut.projektwoche1"
+        applicationId = "com.example.berlinpartymap"
         minSdk = 24
         targetSdk = 35
         versionCode = 1
@@ -33,11 +35,17 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
-    kotlinOptions {
-        jvmTarget = "11"
-    }
+//    kotlinOptions {
+//        jvmTarget = "11"
+//    }
     buildFeatures {
         compose = true
+    }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget = JvmTarget.JVM_11
     }
 }
 
@@ -59,7 +67,13 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
 
-//ViewModel
+// Ktor
+    implementation(libs.ktor.client.core)
+    implementation(libs.ktor.client.cio)
+    implementation(libs.ktor.client.content.negotiation)
+    implementation(libs.ktor.serialization.kotlinx.json)
+
+// ViewModel
     implementation(libs.androidx.lifecycle.viewmodel.compose)
 
 // Icons
