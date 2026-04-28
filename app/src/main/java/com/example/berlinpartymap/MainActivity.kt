@@ -13,10 +13,21 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.example.berlinpartymap.ui.map.MapScreen
 import com.example.berlinpartymap.ui.theme.MyApplicationTheme
+import org.osmdroid.config.Configuration
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+
+        // ---------OpenStreetMap configuration---------
+
+        Configuration.getInstance().load(
+            applicationContext,
+            applicationContext.getSharedPreferences("osm_prefs", MODE_PRIVATE)
+        )
+        Configuration.getInstance().userAgentValue = packageName
+
         super.onCreate(savedInstanceState)
+
         enableEdgeToEdge()
         setContent {
             MyApplicationTheme {

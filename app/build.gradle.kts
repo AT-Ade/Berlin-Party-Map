@@ -67,6 +67,8 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
 
+// OpenStreetMap
+    implementation(libs.osmdroid)
 // Ktor
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.client.cio)

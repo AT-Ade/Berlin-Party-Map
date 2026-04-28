@@ -24,7 +24,7 @@ interface APIService {
     suspend fun getEvents(): List<EventDto>
 
     @GET("clubs")
-    suspend fun getClub(): List<ClubDto>
+    suspend fun getClubs(): List<ClubDto>
 }
 
 object BpmAPI {
