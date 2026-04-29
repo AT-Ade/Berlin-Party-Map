@@ -26,9 +26,11 @@ import com.example.berlinpartymap.data.remote.dto.EventDto
 @Composable
 fun EventListItem(
     modifier: Modifier = Modifier,
-    event: EventDto
+    event: EventDto,
+    onClick: () -> Unit
 ) {
     Card(
+        onClick = onClick,
         modifier = Modifier
             .padding(horizontal = 16.dp, vertical = 4.dp)
             .fillMaxWidth(1f),
@@ -80,6 +82,7 @@ private fun EventListItemPreview() {
             description = "description",
             url = "https://de.ra.co/events/2385678",
             flyerURL = "https://imgproxy.ra.co/_/quality:66/aHR0cHM6Ly9pbWFnZXMucmEuY28vZDQ1MDE5YzQwYWQyNGY0YjU0YmU3YWY3NGQzYzAyYThmNGVjYzU0ZC5qcGc="
-        )
+        ),
+        onClick = {}
     )
 }

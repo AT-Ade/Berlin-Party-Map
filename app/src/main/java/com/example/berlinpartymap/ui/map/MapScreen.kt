@@ -1,5 +1,7 @@
 package com.example.berlinpartymap.ui.map
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
@@ -45,10 +47,20 @@ import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Marker
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import com.example.berlinpartymap.data.remote.dto.EventDto
+import com.example.berlinpartymap.ui.components.EventDetailView
 import com.example.berlinpartymap.ui.components.EventListItem
 import kotlinx.coroutines.flow.forEach
+import androidx.compose.animation.*
 
 //import org.koin.androidx.compose.koinViewModel
 
@@ -63,11 +75,6 @@ fun MapScreen(
     val clubs by mapViewModel.clubs.collectAsState()
 
     var mapListToggle by remember { mutableStateOf(true) }
-    //val mapHeight = if (mapListToggle) 600.dp else 200.dp
-    //val listHeight = if (mapListToggle) 200.dp else 600.dp
-
-//    val mapShadowElevation = if (mapListToggle) 20.dp else 15.dp
-//    val listShadowElevation = if (mapListToggle) 15.dp else 20.dp
 
     val mapHeight by animateDpAsState(
         targetValue = if (mapListToggle) 600.dp else 200.dp,
@@ -92,6 +99,16 @@ fun MapScreen(
     )
 
 
+    //--------Inhalt des unteren Behälters---------
+    var selectedEvent by remember { mutableStateOf<EventDto?>(null) }
+    var eventSelected by remember { mutableStateOf<Boolean>(false) }
+
+    if (selectedEvent != null) {
+        BackHandler {
+            eventSelected = false
+            selectedEvent = null
+        }
+    }
 
     val context = LocalContext.current // Android Context (wird für MapView benötigt)
     val lifecycle = LocalLifecycleOwner.current.lifecycle // Lifecycle der Activity
@@ -229,10 +246,10 @@ fun MapScreen(
 
             }
 
-            // -------- LISTE ----------
+            // -------- LISTE-DETAIL-CONTAINER ----------
 
             Box(modifier = Modifier.height(listHeight)) {
-                Card(
+                Column (
                     modifier = Modifier
                         .padding(horizontal = 16.dp)
                         .fillMaxWidth()
@@ -242,15 +259,62 @@ fun MapScreen(
                             elevation = animatedListElevation,
                             spotColor = Color.White,
                             ambientColor = Color.White
-                        ),
-                    border = BorderStroke(width = 1.dp, color = Color.White),
-                    colors = CardDefaults.cardColors(Color.Black.copy(0.97f))
+                        )
+                        .background(
+                            shape = RoundedCornerShape(15.dp),
+                            color = Color.Black.copy(0.97f)
+                        )
+                        .border(
+                            width = 1.dp,
+                            color = Color.White,
+                            shape = RoundedCornerShape(15.dp)
+                        )
+                        //.border = BorderStroke(width = 1.dp, color = Color.White),
+                    //,
+                    //colors = CardDefaults.cardColors(Color.Black.copy(0.97f))
                 ) {
-                    LazyColumn {
-                        items(events) { event ->
-                            EventListItem(event = event)
+                    AnimatedContent(
+                        targetState = eventSelected,
+                        transitionSpec = {
+                            // Logik: Gehen wir ZU den Details (true) oder ZURÜCK zur Liste (false)?
+                            if (targetState) {
+                                // Hineingehen: Details kommen von rechts (width), Liste geht nach links (-width)
+                                slideInHorizontally { width -> width } + fadeIn() togetherWith
+                                        slideOutHorizontally { width -> -width } + fadeOut()
+                            } else {
+                                // Zurückgehen: Liste kommt von links (-width), Details gehen nach rechts (width)
+                                slideInHorizontally { width -> -width } + fadeIn() togetherWith
+                                        slideOutHorizontally { width -> width } + fadeOut()
+                            }.using(
+                                // Sorgt dafür, dass der Inhaltswechsel nicht durch Clipping abgeschnitten wird
+                                SizeTransform(clip = false)
+                            )
+                        },
+                        label = "contentTransform"
+                    ) { selection ->
+                        if (!selection) {
+                            LazyColumn {
+                                items(events) { event ->
+                                    EventListItem(event = event, onClick = {
+                                        eventSelected = true
+                                        selectedEvent = event
+                                        mapView.controller.animateTo(GeoPoint(event.latitude, event.longitude))
+                                        mapView.controller.setZoom(17.0)
+                                    })
+                                }
+                            }
+                        } else {
+                            if (selectedEvent != null) {
+                                EventDetailView(event = selectedEvent!!, onClick = {
+                                    eventSelected = false
+                                    selectedEvent = null
+                                })
+                            } else {
+                                eventSelected = false
+                            }
                         }
                     }
+
                 }
                 if (mapListToggle) {
                     Card(

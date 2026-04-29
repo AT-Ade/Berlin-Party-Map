@@ -20,6 +20,8 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        multiDexEnabled = true // Meistens nötig für Desugaring
     }
 
     buildTypes {
@@ -32,6 +34,8 @@ android {
         }
     }
     compileOptions {
+        isCoreLibraryDesugaringEnabled = true // 1. Aktivieren
+
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
@@ -66,6 +70,9 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+
+//Desugaring
+    coreLibraryDesugaring(libs.android.desugarJdkLibs)
 
 // OpenStreetMap
     implementation(libs.osmdroid)
