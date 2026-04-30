@@ -205,7 +205,7 @@ fun MapScreen(
 
                 Card(
                     modifier = Modifier
-                        .padding(top = 32.dp, bottom = 16.dp, start = 16.dp, end = 16.dp)
+                        .padding(top = 32.dp, bottom = 16.dp, start = 8.dp, end = 8.dp)
                         .fillMaxWidth()
                         .height(mapHeight)
                         .shadow(
@@ -234,7 +234,7 @@ fun MapScreen(
                 if (!mapListToggle) {
                     Card(
                         modifier = Modifier
-                            .padding(top = 32.dp, bottom = 16.dp, start = 16.dp, end = 16.dp)
+                            .padding(top = 32.dp, bottom = 16.dp, start = 8.dp, end = 8.dp)
                             .fillMaxWidth()
                             .height(mapHeight),
                         colors = CardDefaults.cardColors(containerColor = Color.White.copy(0f)),
@@ -251,7 +251,7 @@ fun MapScreen(
             Box(modifier = Modifier.height(listHeight)) {
                 Column (
                     modifier = Modifier
-                        .padding(horizontal = 16.dp)
+                        .padding(horizontal = 8.dp)
                         .fillMaxWidth()
                         .height(listHeight)
                         .shadow(
@@ -293,7 +293,7 @@ fun MapScreen(
                         label = "contentTransform"
                     ) { selection ->
                         if (!selection) {
-                            LazyColumn {
+                            LazyColumn(modifier = Modifier.padding(top = 8.dp)) {
                                 items(events) { event ->
                                     EventListItem(event = event, onClick = {
                                         eventSelected = true
@@ -319,7 +319,7 @@ fun MapScreen(
                 if (mapListToggle) {
                     Card(
                         modifier = Modifier
-                            .padding(top = 32.dp, bottom = 16.dp, start = 16.dp, end = 16.dp)
+                            //.padding(top = 32.dp, bottom = 16.dp, start = 16.dp, end = 16.dp)
                             .fillMaxWidth()
                             .height(listHeight),
                         colors = CardDefaults.cardColors(containerColor = Color.Black.copy(0f)),
