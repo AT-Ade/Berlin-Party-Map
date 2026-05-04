@@ -1,13 +1,10 @@
 package com.example.berlinpartymap.ui.map
 
-import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.berlinpartymap.data.remote.api.BpmAPI
-import com.example.berlinpartymap.data.remote.dto.ClubDto
 import com.example.berlinpartymap.data.remote.dto.EventDto
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
 class MapViewModel : ViewModel() {
@@ -15,8 +12,17 @@ class MapViewModel : ViewModel() {
     private var _events = MutableStateFlow<List<EventDto>>(emptyList())
     val events = _events.asStateFlow()
 
-    private var _clubs = MutableStateFlow<List<ClubDto>>(emptyList())
-    val clubs = _clubs.asStateFlow()
+    // -------- UI STATE --------
+    private val _selectedEvent = MutableStateFlow<EventDto?>(null)
+    val selectedEvent = _selectedEvent.asStateFlow()
+
+    private val _eventSelected = MutableStateFlow(false)
+    val eventSelected = _eventSelected.asStateFlow()
+
+    // -------- Daten laden --------
+    fun loadInitialData() {
+        loadEvents()
+    }
 
     fun loadEvents() {
         viewModelScope.launch {
@@ -25,11 +31,14 @@ class MapViewModel : ViewModel() {
         }
     }
 
-    fun loadClubs() {
-        viewModelScope.launch {
-            val result = BpmAPI.retrofitService.getClubs()
-            _clubs.value = result
-        }
+    // -------- UI Aktionen --------
+    fun selectEvent(event: EventDto) {
+        _selectedEvent.value = event
+        _eventSelected.value = true
     }
 
+    fun clearSelection() {
+        _selectedEvent.value = null
+        _eventSelected.value = false
+    }
 }
