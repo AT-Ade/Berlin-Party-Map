@@ -32,10 +32,10 @@ fun EventListItem(
     Card(
         onClick = onClick,
         modifier = Modifier
-            .padding(horizontal = 16.dp, vertical = 4.dp)
+            //.padding(start = 16.dp, end = 16.dp, top = 8.dp)
             .fillMaxWidth(1f),
         colors = CardDefaults.cardColors(
-            containerColor = Color.White.copy(0.2f),
+            containerColor = Color.LightGray.copy(0.3f),
             contentColor = Color.White
         )
     ) {
@@ -49,7 +49,7 @@ fun EventListItem(
                 error = painterResource(R.drawable.placeholderevent),
                 modifier = Modifier
                     .padding(16.dp)
-                    .size(80.dp),
+                    .size(60.dp),
                     //.clip(CircleShape),
                 contentScale = ContentScale.FillHeight
             )
