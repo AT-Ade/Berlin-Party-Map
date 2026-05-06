@@ -40,7 +40,9 @@ fun MapScreen(
 
     val events by mapViewModel.events.collectAsState()
     val selectedEvent by mapViewModel.selectedEvent.collectAsState()
+    val highlightedEvent by mapViewModel.highlightedEvent.collectAsState()
     val eventSelected by mapViewModel.eventSelected.collectAsState()
+    val eventHighlighted by mapViewModel.eventHighlighted.collectAsState()
 
     var mapListToggle by remember { mutableStateOf(true) }
 
@@ -94,8 +96,16 @@ fun MapScreen(
     }
 
     // -------- Marker setzen --------
-    LaunchedEffect(events) {
-        updateMarkers(mapView, events)
+    LaunchedEffect(events, highlightedEvent) {
+        updateMarkers(
+            mapView = mapView,
+            events = events,
+            highlightedEvent = highlightedEvent,
+            onMarkerClick = { event ->
+                mapViewModel.highlightEvent(event)
+                mapView.controller.animateTo(GeoPoint(event.latitude, event.longitude))
+            }
+        )
     }
 
     // -------- UI --------
@@ -106,6 +116,8 @@ fun MapScreen(
 
             MapContainer(
                 mapView = mapView,
+                highlightedEvent = highlightedEvent, // State aus ViewModel
+                onCloseInfo = { mapViewModel.clearSelection() },
                 mapHeight = mapHeight,
                 elevation = mapElevation,
                 mapListToggle = mapListToggle,
@@ -122,10 +134,14 @@ fun MapScreen(
                 onToggle = { mapListToggle = !mapListToggle },
                 onEventClick = {
                     mapViewModel.selectEvent(it)
+                    mapViewModel.highlightEvent(it)
                     mapView.controller.animateTo(GeoPoint(it.latitude, it.longitude))
                     mapView.controller.setZoom(17.0)
                 },
-                onBack = { mapViewModel.clearSelection() }
+                onBack = {
+                    mapViewModel.clearSelection()
+                    mapViewModel.clearHighlight()
+                }
             )
         }
     }

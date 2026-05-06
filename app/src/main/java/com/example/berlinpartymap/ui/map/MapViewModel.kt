@@ -16,8 +16,13 @@ class MapViewModel : ViewModel() {
     private val _selectedEvent = MutableStateFlow<EventDto?>(null)
     val selectedEvent = _selectedEvent.asStateFlow()
 
+    private val _highlightedEvent = MutableStateFlow<EventDto?>(null)
+    val highlightedEvent = _highlightedEvent.asStateFlow()
+
     private val _eventSelected = MutableStateFlow(false)
     val eventSelected = _eventSelected.asStateFlow()
+    private val _eventHighlighted = MutableStateFlow(false)
+    val eventHighlighted = _eventHighlighted.asStateFlow()
 
     // -------- Daten laden --------
     fun loadInitialData() {
@@ -37,8 +42,18 @@ class MapViewModel : ViewModel() {
         _eventSelected.value = true
     }
 
+    fun highlightEvent(event: EventDto) {
+        _highlightedEvent.value = event
+        _eventHighlighted.value = true
+    }
+
     fun clearSelection() {
         _selectedEvent.value = null
         _eventSelected.value = false
+    }
+
+    fun clearHighlight() {
+        _selectedEvent.value = null
+        _eventHighlighted.value = false
     }
 }

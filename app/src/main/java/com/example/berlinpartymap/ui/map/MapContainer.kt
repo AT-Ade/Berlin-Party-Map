@@ -10,6 +10,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
@@ -17,6 +18,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import com.example.berlinpartymap.data.remote.dto.EventDto
+import com.example.berlinpartymap.ui.components.CustomMapInfoWindow
 import org.osmdroid.tileprovider.tilesource.ITileSource
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.tileprovider.tilesource.XYTileSource
@@ -52,10 +55,13 @@ fun getDarkTileSource(): ITileSource {
 @Composable
 fun MapContainer(
     mapView: MapView,
+    highlightedEvent: EventDto?, // Neu: Den State übergeben
+    onCloseInfo: () -> Unit,  // Neu: Callback zum Schließen
     mapHeight: Dp,
     elevation: Dp,
     mapListToggle: Boolean,
-    onToggle: () -> Unit
+    onToggle: () -> Unit,
+    //onEventClick: (EventDto) -> Unit
 ) {
     Box {
         Card(
@@ -70,16 +76,23 @@ fun MapContainer(
                 modifier = Modifier.fillMaxSize(),
                 factory = { mapView },
                 update = {
-
-
-                    it.setTileSource(getDarkTileSource())
+                    it.setTileSource(getLightTileSource())
                     it.setMultiTouchControls(true)
                     it.controller.setZoom(15.0)
                     it.controller.setCenter(GeoPoint(52.52, 13.405))
                 }
             )
-        }
 
+        }
+//        if (highlightedEvent != null) {
+//            CustomMapInfoWindow(
+//                event = highlightedEvent,
+//                onClose = onCloseInfo,
+//                modifier = Modifier
+//                    .align(Alignment.TopCenter) // Position auf der Karte
+//                    .padding(top = 16.dp)
+//            )
+//        }
         if (!mapListToggle) {
             Card(
                 modifier = Modifier
