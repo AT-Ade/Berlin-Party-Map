@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.*
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.berlinpartymap.R
 import com.example.berlinpartymap.data.remote.dto.EventDto
@@ -27,6 +28,11 @@ import com.example.berlinpartymap.ui.components.Background
 import com.example.berlinpartymap.ui.components.EventDetailView
 import com.example.berlinpartymap.ui.components.EventListItem
 import com.example.berlinpartymap.ui.helpers.updateMarkers
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
+import org.maplibre.spatialk.geojson.Feature
+import org.maplibre.spatialk.geojson.Point
+import org.maplibre.spatialk.geojson.Position
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
@@ -39,6 +45,7 @@ fun MapScreen(
 ) {
 
     val events by mapViewModel.events.collectAsState()
+    val eventFeatures by mapViewModel.eventFeatures.collectAsState()
     val selectedEvent by mapViewModel.selectedEvent.collectAsState()
     val highlightedEvent by mapViewModel.highlightedEvent.collectAsState()
     val eventSelected by mapViewModel.eventSelected.collectAsState()
@@ -121,7 +128,9 @@ fun MapScreen(
                 mapHeight = mapHeight,
                 elevation = mapElevation,
                 mapListToggle = mapListToggle,
-                onToggle = { mapListToggle = !mapListToggle }
+                onToggle = { mapListToggle = !mapListToggle },
+                locations = eventFeatures,
+                onEventClick = {eventFeatures}
             )
 
             EventContainer(

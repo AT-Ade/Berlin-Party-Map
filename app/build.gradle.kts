@@ -78,7 +78,7 @@ dependencies {
     implementation(libs.maplibre.compose)
     implementation(libs.maplibre.compose.m3)
 
-    implementation(libs.maplibre.geojson)
+   // implementation(libs.maplibre.geojson)
 
 // OpenStreetMap
     implementation(libs.osmdroid)

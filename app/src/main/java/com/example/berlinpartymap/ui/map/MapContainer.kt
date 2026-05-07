@@ -22,6 +22,10 @@ import androidx.compose.ui.viewinterop.AndroidView
 import com.example.berlinpartymap.R
 import com.example.berlinpartymap.data.remote.dto.EventDto
 import com.example.berlinpartymap.ui.components.CustomMapInfoWindow
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import org.maplibre.compose.camera.CameraPosition
 import org.maplibre.compose.camera.rememberCameraState
 import org.maplibre.compose.expressions.dsl.const
@@ -29,17 +33,18 @@ import org.maplibre.compose.expressions.dsl.image
 import org.maplibre.compose.layers.SymbolLayer
 import org.maplibre.compose.map.MaplibreMap
 import org.maplibre.compose.sources.GeoJsonData
-import org.maplibre.compose.sources.Source
 import org.maplibre.compose.sources.rememberGeoJsonSource
 import org.maplibre.compose.style.BaseStyle
+import org.maplibre.compose.util.ClickResult
 import org.maplibre.spatialk.geojson.Point
 import org.osmdroid.tileprovider.tilesource.ITileSource
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.tileprovider.tilesource.XYTileSource
 import org.osmdroid.util.GeoPoint
-import org.osmdroid.views.MapView
 import org.maplibre.spatialk.geojson.Position
 import org.maplibre.spatialk.geojson.*
+import org.osmdroid.views.MapView
+import kotlin.collections.listOf
 
 fun getLightTileSource(): ITileSource {
     return XYTileSource(
@@ -75,8 +80,8 @@ fun MapContainer(
     elevation: Dp,
     mapListToggle: Boolean,
     onToggle: () -> Unit,
-    eventPins: List<GeoJsonData.Features>
-    //onEventClick: (EventDto) -> Unit
+    locations: List<Feature<Point, JsonObject>>,
+    onEventClick: (String) -> Unit
 ) {
     Box {
         Card(
@@ -113,25 +118,21 @@ fun MapContainer(
                 baseStyle = BaseStyle
                     .Uri("https://tiles.openfreemap.org/styles/dark")
             ) {
+//                val source = rememberGeoJsonSource(
+//                    // Ab hier können die Daten aus dem VM stammen z.B.
+//                    data = GeoJsonData.Features(
+//                        Point(
+//                            Position(
+//                                13.4050,
+//                                52.5200
+//                            )
+//                        )
+//                    )
+//                )
                 val source = rememberGeoJsonSource(
-                    // Ab hier können die Daten aus dem VM stammen z.B.
                     data = GeoJsonData.Features(
-                        Point(
-                            Position(
-                                13.4050,
-                                52.5200
-                            )
-                        )
-                    )
-                )
-                val source2 = rememberGeoJsonSource(
-                    // Ab hier können die Daten aus dem VM stammen z.B.
-                    data = GeoJsonData.Features(
-                        Point(
-                            Position(
-                                13.4050,
-                                52.5200
-                            )
+                        FeatureCollection(
+                            locations
                         )
                     )
                 )
@@ -140,7 +141,26 @@ fun MapContainer(
                     id = "Marker",
                     source = source,
                     iconImage = image(painterResource(R.drawable.markerwhite)),
-                    iconSize = const(2f)
+                    iconSize = const(2f),
+                    iconAllowOverlap = const(true),
+                    iconIgnorePlacement = const(true),
+                    onClick = { clickedFeatures: List<Feature<Geometry, JsonObject?>> ->
+                        // Wir nehmen das erste Feature aus der Liste der angeklickten Elemente
+                        val firstFeature = clickedFeatures.firstOrNull()
+
+                        // Wir holen die ID (String) aus den Properties
+                        val idValue: String? = firstFeature?.properties?.get("id")?.jsonPrimitive?.content
+
+                        if (idValue != null) {
+                            // HIER liegt wahrscheinlich der Fehler:
+                            // Stelle sicher, dass du onEventClick(idValue) aufrufst
+                            onEventClick(idValue)
+
+                            ClickResult.Consume
+                        } else {
+                            ClickResult.Pass
+                        }
+                    }
                 )
             }
 
