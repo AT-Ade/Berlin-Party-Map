@@ -5,44 +5,27 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.*
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
-import androidx.lifecycle.*
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.berlinpartymap.R
-import com.example.berlinpartymap.data.remote.dto.EventDto
 import com.example.berlinpartymap.ui.components.Background
-import com.example.berlinpartymap.ui.components.EventDetailView
-import com.example.berlinpartymap.ui.components.EventListItem
-import com.example.berlinpartymap.ui.helpers.updateMarkers
-import org.osmdroid.tileprovider.tilesource.TileSourceFactory
-import org.osmdroid.util.GeoPoint
-import org.osmdroid.views.MapView
-import org.osmdroid.views.overlay.Marker
+import kotlinx.coroutines.launch
+import org.maplibre.compose.camera.CameraPosition
+import org.maplibre.compose.camera.rememberCameraState
+import org.maplibre.spatialk.geojson.Position
 
 @Composable
 fun MapScreen(
     modifier: Modifier = Modifier,
     mapViewModel: MapViewModel = viewModel()
 ) {
-
     val events by mapViewModel.events.collectAsState()
+    val eventFeatures by mapViewModel.eventFeatures.collectAsState()
     val selectedEvent by mapViewModel.selectedEvent.collectAsState()
     val highlightedEvent by mapViewModel.highlightedEvent.collectAsState()
     val eventSelected by mapViewModel.eventSelected.collectAsState()
-    val eventHighlighted by mapViewModel.eventHighlighted.collectAsState()
+    val cameraTarget by mapViewModel.cameraTarget.collectAsState()
 
     var mapListToggle by remember { mutableStateOf(true) }
 
@@ -51,43 +34,46 @@ fun MapScreen(
         targetValue = if (mapListToggle) 600.dp else 200.dp,
         animationSpec = tween(200), label = ""
     )
-
     val listHeight by animateDpAsState(
         targetValue = if (mapListToggle) 200.dp else 600.dp,
         animationSpec = tween(200), label = ""
     )
-
     val mapElevation by animateDpAsState(
         targetValue = if (mapListToggle) 20.dp else 5.dp, label = ""
     )
-
     val listElevation by animateDpAsState(
         targetValue = if (!mapListToggle) 20.dp else 5.dp, label = ""
     )
 
     // Back Navigation für Detail View
     if (selectedEvent != null) {
-        BackHandler {
-            mapViewModel.clearSelection()
-        }
+        BackHandler { mapViewModel.clearSelection() }
     }
 
-    // -------- MapView Setup --------
-    val context = LocalContext.current
-    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    // -------- MapLibre Kamera --------
+    // cameraState wird hier erstellt und an MapContainer weitergegeben,
+    // damit wir von überall (EventListe, Pin-Klick) die Kamera steuern können.
+    val cameraState = rememberCameraState(
+        CameraPosition(
+            target = Position(13.4050, 52.5200),
+            zoom = 11.0
+        )
+    )
 
-    val mapView = remember { MapView(context) }
+    val coroutineScope = rememberCoroutineScope()
 
-    DisposableEffect(lifecycle) {
-        val observer = LifecycleEventObserver { _, event ->
-            when (event) {
-                Lifecycle.Event.ON_RESUME -> mapView.onResume()
-                Lifecycle.Event.ON_PAUSE -> mapView.onPause()
-                else -> {}
-            }
+    // Reagiert auf Kamera-Ziel aus dem ViewModel (z.B. wenn aus der Liste ein Event geöffnet wird)
+    LaunchedEffect(cameraTarget) {
+        val target = cameraTarget ?: return@LaunchedEffect
+        coroutineScope.launch {
+            cameraState.animateTo(
+                CameraPosition(
+                    target = Position(target.first, target.second),
+                    zoom = 15.0
+                )
+            )
         }
-        lifecycle.addObserver(observer)
-        onDispose { lifecycle.removeObserver(observer) }
+        mapViewModel.onCameraTargetConsumed()
     }
 
     // -------- Daten laden --------
@@ -95,33 +81,39 @@ fun MapScreen(
         mapViewModel.loadInitialData()
     }
 
-    // -------- Marker setzen --------
-    LaunchedEffect(events, highlightedEvent) {
-        updateMarkers(
-            mapView = mapView,
-            events = events,
-            highlightedEvent = highlightedEvent,
-            onMarkerClick = { event ->
-                mapViewModel.highlightEvent(event)
-                mapView.controller.animateTo(GeoPoint(event.latitude, event.longitude))
-            }
-        )
-    }
-
     // -------- UI --------
     Box {
         Background()
 
         Column {
-
             MapContainer(
-                mapView = mapView,
-                highlightedEvent = highlightedEvent, // State aus ViewModel
-                onCloseInfo = { mapViewModel.clearSelection() },
+                cameraState = cameraState,
+                highlightedEvent = highlightedEvent,
+                onCloseInfo = {
+                    mapViewModel.clearHighlight()
+                },
                 mapHeight = mapHeight,
                 elevation = mapElevation,
                 mapListToggle = mapListToggle,
-                onToggle = { mapListToggle = !mapListToggle }
+                onToggle = { mapListToggle = !mapListToggle },
+                locations = eventFeatures,
+                onMarkerClick = { eventId ->
+                    // Event anhand der ID (url) suchen
+                    val event = mapViewModel.findEventById(eventId)
+                    if (event != null) {
+                        mapViewModel.highlightEvent(event)
+                        // Kamera sofort setzen (ohne clearHighlight zu triggern)
+                        coroutineScope.launch {
+                            cameraState.animateTo(
+                                CameraPosition(
+                                    target = Position(event.longitude, event.latitude),
+                                    zoom = 15.0
+                                )
+                            )
+                        }
+                        mapViewModel.onCameraTargetConsumed()
+                    }
+                }
             )
 
             EventContainer(
@@ -132,11 +124,10 @@ fun MapScreen(
                 elevation = listElevation,
                 mapListToggle = mapListToggle,
                 onToggle = { mapListToggle = !mapListToggle },
-                onEventClick = {
-                    mapViewModel.selectEvent(it)
-                    mapViewModel.highlightEvent(it)
-                    mapView.controller.animateTo(GeoPoint(it.latitude, it.longitude))
-                    mapView.controller.setZoom(17.0)
+                onEventClick = { event ->
+                    mapViewModel.selectEvent(event)
+                    mapViewModel.highlightEvent(event)
+                    // highlightEvent setzt cameraTarget → LaunchedEffect übernimmt den Sprung
                 },
                 onBack = {
                     mapViewModel.clearSelection()
@@ -145,10 +136,4 @@ fun MapScreen(
             )
         }
     }
-}
-
-@Preview(showSystemUi = true, showBackground = true)
-@Composable
-fun MapScreenPreview() {
-    MapScreen()
 }

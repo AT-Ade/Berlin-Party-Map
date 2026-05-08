@@ -12,6 +12,10 @@ composeBom = "2024.04.01"
 # Desugaring
 desugar_jdk_libs = "2.1.5"
 
+# MapLibre
+maplibre-compose = "0.12.1"
+#maplibre-geojson = "6.11.0"
+
 # OpenStreetMap
 osmdroid = "6.1.18"
 
@@ -38,6 +42,7 @@ coilCompose = "3.3.0"
 
 # Datastore
 datastorePreferences = "1.2.0"
+jetbrainsKotlinJvm = "2.3.0"
 
 
 [libraries]
@@ -58,6 +63,11 @@ androidx-material3 = { group = "androidx.compose.material3", name = "material3" 
 
 # Desugaring
 android-desugarJdkLibs = { group = "com.android.tools", name = "desugar_jdk_libs", version.ref = "desugar_jdk_libs" }
+
+# MapLibre
+maplibre-compose = { group = "org.maplibre.compose", name = "maplibre-compose", version.ref = "maplibre-compose" }
+maplibre-compose-m3 = { group = "org.maplibre.compose", name = "maplibre-compose-material3", version.ref = "maplibre-compose" }
+#maplibre-geojson = { group = "org.maplibre.gl", name = "android-sdk-geojson", version.ref = "maplibre-geojson" }
 
 # OpenStreetMap
 osmdroid = { module = "org.osmdroid:osmdroid-android", version.ref = "osmdroid" }
@@ -107,3 +117,4 @@ jetbrains-kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serializati
 
 # KSP (Für Room)
 kotlin-ksp = { id = "com.google.devtools.ksp", version.ref = "kspVersion" }
+jetbrains-kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "jetbrainsKotlinJvm" }
