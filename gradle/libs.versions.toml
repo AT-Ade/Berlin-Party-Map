@@ -42,6 +42,7 @@ coilCompose = "3.3.0"
 
 # Datastore
 datastorePreferences = "1.2.0"
+jetbrainsKotlinJvm = "2.3.0"
 
 
 [libraries]
@@ -116,3 +117,4 @@ jetbrains-kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serializati
 
 # KSP (Für Room)
 kotlin-ksp = { id = "com.google.devtools.ksp", version.ref = "kspVersion" }
+jetbrains-kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "jetbrainsKotlinJvm" }
