@@ -66,8 +66,7 @@ fun EventContainer(
                         slideInHorizontally { -it } + fadeIn() togetherWith
                                 slideOutHorizontally { it } + fadeOut()
                     }.using(SizeTransform(false))
-                },
-                label = ""
+                }
             ) { selected ->
 
                 if (!selected) {

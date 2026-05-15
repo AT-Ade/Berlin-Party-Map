@@ -1,6 +1,9 @@
 package com.example.berlinpartymap.ui.components
 
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -13,8 +16,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.example.berlinpartymap.R
+import com.example.berlinpartymap.data.remote.dto.ArtistDto
 import com.example.berlinpartymap.data.remote.dto.EventDto
 
 @Composable
@@ -23,30 +31,46 @@ fun CustomMapInfoWindow(
     onClose: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Card(
-        modifier = modifier
-            .padding(16.dp)
-            .fillMaxWidth(0.7f),
-        colors = CardDefaults.cardColors(containerColor = Color.DarkGray),
-        shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(8.dp)
+    Box(
+        modifier = modifier.fillMaxWidth(0.7f),
+        contentAlignment = Alignment.Center
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
-            Text(
-                text = event.venueName,
-                style = MaterialTheme.typography.titleMedium,
-                color = Color.White
-            )
-            Text(
-                text = "Tap für Details",
-                style = MaterialTheme.typography.bodySmall,
-                color = Color.LightGray
-            )
-            Button(
-                onClick = onClose,
-                modifier = Modifier.align(Alignment.End).padding(top = 8.dp)
-            ) {
-                Text("Schließen")
+
+        Image(
+            painter = painterResource(R.drawable.infoboxwhite),
+            contentDescription = "Infobox",
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Card(
+            modifier = Modifier
+                .padding(16.dp)
+                .fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+            shape = RoundedCornerShape(15.dp)
+        ) {
+            Column(modifier = Modifier.padding(12.dp)) {
+                Text(
+                    text = event.venueName,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = Color.Black
+                )
+                Text(
+                    text = event.name,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.Black
+                )
+//                Text(
+//                    text = "Tap für Details",
+//                    style = MaterialTheme.typography.bodySmall,
+//                    color = Color.LightGray
+//                )
+                Button(
+                    onClick = onClose,
+                    modifier = Modifier.align(Alignment.End).padding(top = 8.dp)
+                ) {
+                    Text("Schließen")
+                }
             }
         }
     }
@@ -65,12 +89,13 @@ private fun CustomInfoBoxPreview() {
             startTime = "2026-04-24T16:00:00+02:00",
             endTime = "2026-04-25T08:00:00+02:00",
             lineup = listOf(
-                "CRYME", "ESVEAE", "Floorplan (Robert Hood & Lyric Hood)",
-                "Handmade b2b Stella Zekri", "Natalie Robinson", "Power Squad"
-            ),
+                ArtistDto("CRYME")
+                ),
             description = "description",
             url = "https://de.ra.co/events/2385678",
-            flyerURL = "https://imgproxy.ra.co/_/quality:66/aHR0cHM6Ly9pbWFnZXMucmEuY28vZDQ1MDE5YzQwYWQyNGY0YjU0YmU3YWY3NGQzYzAyYThmNGVjYzU0ZC5qcGc="
+            flyerURL = "https://imgproxy.ra.co/_/quality:66/aHR0cHM6Ly9pbWFnZXMucmEuY28vZDQ1MDE5YzQwYWQyNGY0YjU0YmU3YWY3NGQzYzAyYThmNGVjYzU0ZC5qcGc=",
+            venueAddress = "Clubstraße 123",
+            price = 25.0
         ),
         onClose = {}
     )

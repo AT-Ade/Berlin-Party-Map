@@ -10,6 +10,8 @@
 
     <application
 
+        android:name=".di.App"
+
         android:usesCleartextTraffic="true"
 
         android:allowBackup="true"

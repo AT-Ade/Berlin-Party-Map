@@ -6,12 +6,15 @@ import kotlinx.serialization.Serializable
 data class EventDto(
     val name: String,
     val venueName: String,
+    val venueAddress: String,
     val latitude: Double,
     val longitude: Double,
-    val startTime: String, // ISO 8601 Format empfohlen
+    val startTime: String,
     val endTime: String,
-    val lineup: List<String>,
+    val lineup: List<ArtistDto>,
     val description: String,
     val url: String,
-    val flyerURL: String
+    val flyerURL: String,
+    val price: Double
 )
+

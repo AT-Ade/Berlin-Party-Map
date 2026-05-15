@@ -2,8 +2,9 @@ package com.example.berlinpartymap.ui.map
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.berlinpartymap.data.remote.api.BpmAPI
+//import com.example.berlinpartymap.data.remote.api.BpmAPI
 import com.example.berlinpartymap.data.remote.dto.EventDto
+import com.example.berlinpartymap.data.repository.EventRepository
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.JsonObject
@@ -11,7 +12,9 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import org.maplibre.spatialk.geojson.*
 
-class MapViewModel : ViewModel() {
+class EventViewModel(
+    private val repository: EventRepository // Injection
+) : ViewModel() {
 
     private var _events = MutableStateFlow<List<EventDto>>(emptyList())
     val events = _events.asStateFlow()
@@ -57,9 +60,11 @@ class MapViewModel : ViewModel() {
     fun loadEvents() {
         viewModelScope.launch {
             try {
-                val result = BpmAPI.retrofitService.getEvents()
+                val result = repository.getEvents()
                 _events.value = result
-            } catch (e: Exception) { }
+            } catch (e: Exception) {
+
+            }
         }
     }
 

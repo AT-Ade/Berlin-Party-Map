@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.example.berlinpartymap.R
+import com.example.berlinpartymap.data.remote.dto.ArtistDto
 import com.example.berlinpartymap.data.remote.dto.EventDto
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
@@ -249,7 +250,7 @@ fun EventDetailView(
                                     shape = RoundedCornerShape(10.dp)
                                 )
                         ) {
-                            Text(artist, modifier = Modifier.padding(8.dp))
+                            Text(artist.name, modifier = Modifier.padding(8.dp))
                         }
                     }
                 }
@@ -305,12 +306,13 @@ private fun EventDetailViewPreview() {
                     startTime = "2026-04-24T16:00:00+02:00",
                     endTime = "2026-04-25T08:00:00+02:00",
                     lineup = listOf(
-                        "CRYME", "ESVEAE", "Floorplan (Robert Hood & Lyric Hood)",
-                        "Handmade b2b Stella Zekri", "Natalie Robinson", "Power Squad"
+                        ArtistDto("CRYME")
                     ),
                     description = "description",
                     url = "https://de.ra.co/events/2385678",
-                    flyerURL = "https://imgproxy.ra.co/_/quality:66/aHR0cHM6Ly9pbWFnZXMucmEuY28vZDQ1MDE5YzQwYWQyNGY0YjU0YmU3YWY3NGQzYzAyYThmNGVjYzU0ZC5qcGc="
+                    flyerURL = "https://imgproxy.ra.co/_/quality:66/aHR0cHM6Ly9pbWFnZXMucmEuY28vZDQ1MDE5YzQwYWQyNGY0YjU0YmU3YWY3NGQzYzAyYThmNGVjYzU0ZC5qcGc=",
+                    venueAddress = "Clubstraße 123",
+                    price = 25.0
                 ),
                 onClick = {}
             )
