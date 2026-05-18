@@ -11,6 +11,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import com.example.berlinpartymap.ui.AppStart
 import com.example.berlinpartymap.ui.map.MapScreen
 import com.example.berlinpartymap.ui.theme.MyApplicationTheme
 import org.osmdroid.config.Configuration
@@ -32,9 +33,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             MyApplicationTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    MapScreen(
-                        modifier = Modifier.padding(innerPadding)
-                    )
+                    AppStart(modifier = Modifier.padding(innerPadding))
                 }
             }
         }
