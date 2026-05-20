@@ -1,5 +1,8 @@
-package com.example.berlinpartymap.ui.components
+package com.example.berlinpartymap.ui.savedevents
 
+import androidx.compose.foundation.layout.Arrangement
+import com.example.berlinpartymap.data.local.ArtistEntity
+import com.example.berlinpartymap.data.local.EventEntity
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -9,8 +12,11 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.LocalTextStyle
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -31,12 +37,11 @@ import java.util.Locale
 import kotlin.math.roundToInt
 
 @Composable
-fun EventListItem(
+fun SavedEventListItem(
     modifier: Modifier = Modifier,
-    event: EventDto,
+    event: EventEntity,
     onClick: () -> Unit,
 ) {
-
     val zonedDateStartTime = ZonedDateTime.parse(event.startTime)
     // Format für das Datum (25.04.2026)
     val dateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy", Locale.GERMANY)
@@ -71,14 +76,19 @@ fun EventListItem(
                 modifier = Modifier
                     .padding(16.dp)
                     .size(60.dp),
-                    //.clip(CircleShape),
+                //.clip(CircleShape),
                 contentScale = ContentScale.FillHeight
             )
+            CompositionLocalProvider(LocalTextStyle provides MaterialTheme.typography.bodySmall) {
+
+            }
             Column(
                 modifier = Modifier.padding(8.dp)
+
             ) {
                 Text(event.venueName, fontWeight = FontWeight.Bold)
                 Text(event.name)
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     //horizontalArrangement = Arrangement.SpaceBetween
@@ -91,6 +101,7 @@ fun EventListItem(
                         fontStyle = FontStyle.Italic
                     )
                 }
+
             }
 
         }
@@ -101,19 +112,16 @@ fun EventListItem(
 @Composable
 private fun EventListItemPreview() {
     // Use Theme here
-    EventListItem(
-        event = EventDto(
+    SavedEventListItem(
+        event = EventEntity(
             name = "Party Berlin",
             venueName = "Club Berlin",
             latitude = 52.4837,
             longitude = 13.4482,
             startTime = "2026-04-24T16:00:00+02:00",
             endTime = "2026-04-25T08:00:00+02:00",
-            lineup = listOf(
-                ArtistDto("CRYME")
-            ),
             description = "description",
-            url = "https://de.ra.co/events/2385678",
+            eventId = "https://de.ra.co/events/2385678",
             flyerURL = "https://imgproxy.ra.co/_/quality:66/aHR0cHM6Ly9pbWFnZXMucmEuY28vZDQ1MDE5YzQwYWQyNGY0YjU0YmU3YWY3NGQzYzAyYThmNGVjYzU0ZC5qcGc=",
             venueAddress = "Clubstraße 123",
             price = 25.0

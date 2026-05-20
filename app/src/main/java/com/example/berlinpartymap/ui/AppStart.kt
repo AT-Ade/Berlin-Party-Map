@@ -18,7 +18,7 @@ import androidx.navigation.compose.rememberNavController
 import com.example.berlinpartymap.data.enums.TabItem
 import com.example.berlinpartymap.ui.map.MapScreen
 import com.example.berlinpartymap.ui.partyhistory.PartyHistoryScreenScreen
-import com.example.berlinpartymap.ui.savedevents.SavedEventsScreenScreen
+import com.example.berlinpartymap.ui.savedevents.SavedEventsScreen
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -73,7 +73,7 @@ fun AppStart(
                 MapScreen()
             }
             composable<SavedRoute> {
-                SavedEventsScreenScreen()
+                SavedEventsScreen()
             }
 
             composable<HistoryRoute> {

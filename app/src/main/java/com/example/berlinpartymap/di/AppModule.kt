@@ -6,6 +6,7 @@ import com.example.berlinpartymap.data.remote.api.APIService
 import com.example.berlinpartymap.data.repository.EventRepository
 import com.example.berlinpartymap.data.repository.EventRepositoryImpl
 import com.example.berlinpartymap.ui.map.EventViewModel
+import com.example.berlinpartymap.ui.savedevents.SavedEventsViewModel
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import org.koin.android.ext.koin.androidContext
@@ -49,6 +50,9 @@ val appModule = module {
     // ------------- ViewModel -------------
 
         viewModelOf(::EventViewModel)
+
+
+        viewModelOf(::SavedEventsViewModel)
 
 
 }

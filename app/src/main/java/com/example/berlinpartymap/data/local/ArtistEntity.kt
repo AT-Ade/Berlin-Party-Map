@@ -8,5 +8,6 @@ data class ArtistEntity(
     @PrimaryKey(autoGenerate = true)
     val artistId: Long = 0,
     val eventId: String, //Fremdschlüssel
-    val name: String
+    val name: String,
+    val iLike : Boolean = false
 )

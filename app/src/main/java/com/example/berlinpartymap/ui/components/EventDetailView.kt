@@ -20,6 +20,8 @@ import androidx.compose.material.icons.outlined.AccessTime
 import androidx.compose.material.icons.outlined.CalendarToday
 import androidx.compose.material.icons.outlined.Euro
 import androidx.compose.material.icons.outlined.LocationOn
+import androidx.compose.material.icons.rounded.ArrowBackIosNew
+import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -46,12 +48,15 @@ import com.example.berlinpartymap.data.remote.dto.EventDto
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import kotlin.math.roundToInt
 
 @Composable
 fun EventDetailView(
     modifier: Modifier = Modifier,
     event: EventDto,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    saveButtonClick: (EventDto) -> Unit,
+    isSaved: Boolean
 ) {
     //Parsen des ISO-Strings
     val zonedDateStartTime = ZonedDateTime.parse(event.startTime)
@@ -68,63 +73,69 @@ fun EventDetailView(
     val endTimeString = zonedDateEndTime.format(timeFormatter)
 
 
-    LazyColumn(
-        modifier = Modifier.fillMaxSize()
-    ) {
-        item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Button(
-                    onClick = onClick,
-                    modifier = Modifier.padding(8.dp)
+    Column(){
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            StyledIconButton(
+                onClick = onClick,
+                icon = Icons.Rounded.ArrowBackIosNew,
+                iconColor = Color.White
+            )
+
+            StyledIconButton(
+                onClick = { saveButtonClick(event) },
+                icon = Icons.Rounded.Star,
+                iconColor = if (isSaved) Color.Green else Color.White
+            )
+        }
+        LazyColumn(
+            modifier = Modifier.fillMaxSize()
+        ) {
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
                 ) {
-                    Text("< zurück")
+                    AsyncImage(
+                        model = event.flyerURL,
+                        contentDescription = "${event.name} Flyer",
+                        //placeholder = painterResource(R.drawable.placeholderevent),
+                        error = painterResource(R.drawable.placeholderevent),
+                        modifier = Modifier
+                            .padding(16.dp)
+                            .size(180.dp),
+                        //.clip(CircleShape),
+                        contentScale = ContentScale.FillHeight
+                    )
                 }
             }
-        }
-        item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center
-            ) {
-                AsyncImage(
-                    model = event.flyerURL,
-                    contentDescription = "${event.name} Flyer",
-                    //placeholder = painterResource(R.drawable.placeholderevent),
-                    error = painterResource(R.drawable.placeholderevent),
+            item {
+                Column(
                     modifier = Modifier
-                        .padding(16.dp)
-                        .size(180.dp),
-                    //.clip(CircleShape),
-                    contentScale = ContentScale.FillHeight
-                )
-            }
-        }
-        item{
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(8.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
+                        .fillMaxWidth()
+                        .padding(8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
 
-                // --------- Titel ---------
+                    // --------- Titel ---------
 
-                Text(
-                    event.name,
-                    color = Color.LightGray,
-                    fontSize = 25.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    textAlign = TextAlign.Center
-                )
-                //Row(modifier = Modifier.fillMaxWidth(),
-                  //  horizontalArrangement = Arrangement.SpaceEvenly) {
+                    Text(
+                        event.name,
+                        color = Color.LightGray,
+                        fontSize = 25.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        textAlign = TextAlign.Center
+                    )
+                    //Row(modifier = Modifier.fillMaxWidth(),
+                    //  horizontalArrangement = Arrangement.SpaceEvenly) {
 
-                // --------- Datum ---------
+                    // --------- Datum ---------
 
                     Row(
                         Modifier
@@ -146,7 +157,7 @@ fun EventDetailView(
                         )
                     }
 
-                // --------- Uhrzeit ---------
+                    // --------- Uhrzeit ---------
 
                     Row(
                         Modifier
@@ -168,108 +179,112 @@ fun EventDetailView(
                         )
                     }
 
-                // --------- Location ---------
+                    // --------- Location ---------
 
-                Row(
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.LocationOn,
-                        contentDescription = "Location Icon",
-                        tint = Color.White,
-                        modifier = Modifier.size(25.dp)
-                    )
-                    Text(
-                        event.venueName,
-                        color = Color.White,
-                        fontSize = 20.sp,
-                        modifier = Modifier.padding(horizontal = 8.dp)
-                    )
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.LocationOn,
+                            contentDescription = "Location Icon",
+                            tint = Color.White,
+                            modifier = Modifier.size(25.dp)
+                        )
+                        Text(
+                            event.venueName,
+                            color = Color.White,
+                            fontSize = 20.sp,
+                            modifier = Modifier.padding(horizontal = 8.dp)
+                        )
 
-                    //HIER MUSS NOCH EINE RICHTIGE ADRESSE HIN
+                        //HIER MUSS NOCH EINE RICHTIGE ADRESSE HIN
+                    }
+
+                    // -------- PREISE --------
+
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Euro,
+                            contentDescription = "Time Icon",
+                            tint = Color.White,
+                            modifier = Modifier.size(25.dp)
+                        )
+                        Text(
+                            if (event.price != 0.0) "${event.price.roundToInt()}€" else "free",
+                            fontWeight = FontWeight.Bold,
+                            fontStyle = FontStyle.Italic,
+                            fontSize = 20.sp,
+                            modifier = Modifier.padding(horizontal = 8.dp)
+                        )
+                    }
+
+                    // }
                 }
-
-                // -------- PREISE --------
-
-                Row(
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Euro,
-                        contentDescription = "Time Icon",
-                        tint = Color.White,
-                        modifier = Modifier.size(25.dp)
-                    )
-                    Text(
-                        "???",
-                        color = Color.White,
-                        fontSize = 20.sp,
-                        modifier = Modifier.padding(horizontal = 8.dp)
-                    )
-                }
-
-               // }
             }
-        }
 
-                // --------- LINEUP ---------
+            // --------- LINEUP ---------
 
-        item{
-            Column(
-                modifier = Modifier.padding(8.dp)
-            ) {
-                Text(
-                    "LINEUP",
-                    color = Color.LightGray,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 25.sp,
-                    fontStyle = FontStyle.Italic
-                )
-                FlowRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp), // Abstand zwischen den Cards horizontal
-                    verticalArrangement = Arrangement.spacedBy(4.dp)    // Abstand zwischen den Zeilen
+            item {
+                Column(
+                    modifier = Modifier.padding(8.dp)
                 ) {
-                    event.lineup.forEach { artist ->
-                        Card(
-                            colors = CardDefaults.cardColors(
-                                containerColor = Color.Transparent,
-                                contentColor = Color.White
-                            ),
-                            modifier = Modifier
-                                .padding(4.dp)
-                                .border(
-                                    width = 1.dp,
-                                    color = Color.White,
-                                    shape = RoundedCornerShape(10.dp)
-                                )
-                        ) {
-                            Text(artist.name, modifier = Modifier.padding(8.dp))
+                    Text(
+                        "LINEUP",
+                        color = Color.LightGray,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 25.sp,
+                        fontStyle = FontStyle.Italic
+                    )
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(4.dp), // Abstand zwischen den Cards horizontal
+                        verticalArrangement = Arrangement.spacedBy(4.dp)    // Abstand zwischen den Zeilen
+                    ) {
+                        event.lineup.forEach { artist ->
+                            Card(
+                                colors = CardDefaults.cardColors(
+                                    containerColor = Color.Transparent,
+                                    contentColor = Color.White
+                                ),
+                                modifier = Modifier
+                                    .padding(4.dp)
+                                    .border(
+                                        width = 1.dp,
+                                        color = Color.White,
+                                        shape = RoundedCornerShape(10.dp)
+                                    )
+                            ) {
+                                Text(artist.name, modifier = Modifier.padding(8.dp))
+                            }
                         }
                     }
                 }
             }
-        }
 
             // ------------- Beschreibung -------------
 
-        item {
+            item {
 
-            Column(modifier = Modifier.fillMaxWidth().padding(8.dp)){
-                Text(
-                    "BESCHREIBUNG",
-                    color = Color.LightGray,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 25.sp,
-                    fontStyle = FontStyle.Italic
-                )
-                Text(event.description, color = Color.White)
+                Column(modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(8.dp)) {
+                    Text(
+                        "BESCHREIBUNG",
+                        color = Color.LightGray,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 25.sp,
+                        fontStyle = FontStyle.Italic
+                    )
+                    Text(event.description, color = Color.White)
+                }
             }
         }
     }
@@ -314,7 +329,9 @@ private fun EventDetailViewPreview() {
                     venueAddress = "Clubstraße 123",
                     price = 25.0
                 ),
-                onClick = {}
+                onClick = {},
+                saveButtonClick = {},
+                isSaved = true
             )
         }
     }

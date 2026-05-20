@@ -7,7 +7,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.*
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.berlinpartymap.data.remote.dto.EventDto
 import com.example.berlinpartymap.ui.components.Background
+import com.example.berlinpartymap.ui.savedevents.SavedEventsViewModel
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 import org.maplibre.compose.camera.CameraPosition
@@ -17,7 +19,8 @@ import org.maplibre.spatialk.geojson.Position
 @Composable
 fun MapScreen(
     modifier: Modifier = Modifier,
-    eventViewModel: EventViewModel = koinViewModel()
+    eventViewModel: EventViewModel = koinViewModel(),
+    savedEventsViewModel: SavedEventsViewModel = koinViewModel()
 ) {
     val events by eventViewModel.events.collectAsState()
     val eventFeatures by eventViewModel.eventFeatures.collectAsState()
@@ -25,6 +28,8 @@ fun MapScreen(
     val highlightedEvent by eventViewModel.highlightedEvent.collectAsState()
     val eventSelected by eventViewModel.eventSelected.collectAsState()
     val cameraTarget by eventViewModel.cameraTarget.collectAsState()
+
+    val savedEventsWithLineup by savedEventsViewModel.savedEvents.collectAsState()
 
     var mapListToggle by remember { mutableStateOf(true) }
 
@@ -56,7 +61,8 @@ fun MapScreen(
     val cameraState = rememberCameraState(
         CameraPosition(
             target = Position(13.4050, 52.5200),
-            zoom = 11.0
+            zoom = 11.0,
+
         )
     )
 
@@ -138,14 +144,15 @@ fun MapScreen(
                 onEventClick = { event ->
                     eventViewModel.selectEvent(event)
 
-                    eventViewModel.highlightEvent(event)
+                    //eventViewModel.highlightEvent(event)
                     // MUSS NOCH RAUS
                 },
                 onBack = {
                     eventViewModel.clearSelection()
                     eventViewModel.clearHighlight()
-                }
-            )
+                },
+                saveButtonclick = {eventViewModel.saveEventToFavorites(eventDto = selectedEvent!!)},
+                isSaved = savedEventsWithLineup.any { it.event.eventId == selectedEvent?.url }            )
         }
     }
 }

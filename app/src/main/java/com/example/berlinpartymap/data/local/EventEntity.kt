@@ -6,7 +6,7 @@ import androidx.room.PrimaryKey
 @Entity(tableName = "events")
 data class EventEntity(
     @PrimaryKey
-    val eventId: String, // erstmal noch URL, später UUID.toString()
+    val eventId: String, // URL oder UUID.toString()
     val name: String,
     val venueName: String,
     val venueAddress: String,

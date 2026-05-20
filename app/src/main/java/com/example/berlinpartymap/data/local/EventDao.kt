@@ -33,5 +33,8 @@ interface EventDao {
     suspend fun delete(eventEntity: EventEntity)
 
     @Update
-    suspend fun update(eventEntity: EventEntity)
+    suspend fun updateEvent(eventEntity: EventEntity)
+
+    @Update
+    suspend fun updateArtist(artistEntity: ArtistEntity)
 }

@@ -35,6 +35,7 @@ class EventViewModel(
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+
     // -------- UI STATE --------
     private val _selectedEvent = MutableStateFlow<EventDto?>(null)
     val selectedEvent = _selectedEvent.asStateFlow()
@@ -68,10 +69,32 @@ class EventViewModel(
         }
     }
 
+    // -------- Lokale Datenspeicherung --------
+
+    //Speichert ein Event (inklusive Lineup/Artists) in der lokalen Raum-Datenbank.
+    fun saveEventToFavorites(eventDto: EventDto) {
+        viewModelScope.launch {
+            try {
+                repository.saveDtoToDatabase(eventDto)
+                // Hier könntest du optional ein "Erfolgreich gespeichert"-Feedback für die UI triggern
+            } catch (e: Exception) {
+                // Wichtig, falls beim DB-Insert etwas schiefgeht (z.B. Constraint-Fehler)
+                e.printStackTrace()
+            }
+        }
+    }
+
+    fun getSavedEvents(){
+
+    }
+
+
+
     // -------- UI Aktionen --------
     fun selectEvent(event: EventDto) {
         _selectedEvent.value = event
         _eventSelected.value = true
+        _cameraTarget.value = Pair(event.longitude, event.latitude)
     }
 
     fun highlightEvent(event: EventDto) {

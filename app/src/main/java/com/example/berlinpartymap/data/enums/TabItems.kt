@@ -14,8 +14,8 @@ enum class TabItem(
     val tabTitle: String,
     val tabIcon: ImageVector
 ) {
-    MAP(MapRoute, "Home", Icons.Rounded.Map),
-    FAVOURITES(SavedRoute, "Favourites", Icons.Rounded.Star),
-    HISTORY(HistoryRoute, "History", Icons.Rounded.History),
+    MAP(MapRoute, "Karte", Icons.Rounded.Map),
+    FAVOURITES(SavedRoute, "Favoriten", Icons.Rounded.Star),
+    HISTORY(HistoryRoute, "Verlauf", Icons.Rounded.History),
     //...
 }

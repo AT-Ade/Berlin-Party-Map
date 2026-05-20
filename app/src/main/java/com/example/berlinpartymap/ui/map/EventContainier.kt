@@ -42,7 +42,9 @@ fun EventContainer(
     mapListToggle: Boolean,
     onToggle: () -> Unit,
     onEventClick: (EventDto) -> Unit,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    saveButtonclick: (EventDto) -> Unit,
+    isSaved: Boolean
 ) {
     Box(modifier = Modifier.height(listHeight)) {
 
@@ -85,7 +87,11 @@ fun EventContainer(
                     }
                 } else {
                     selectedEvent?.let {
-                        EventDetailView(event = it, onClick = onBack)
+                        EventDetailView(event = it,
+                            onClick = onBack,
+                            saveButtonClick = { saveButtonclick },
+                            isSaved = isSaved
+                        )
                     }
                 }
             }
