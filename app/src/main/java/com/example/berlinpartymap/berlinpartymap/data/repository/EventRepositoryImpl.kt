@@ -52,5 +52,38 @@ class EventRepositoryImpl(
         dao.insertFullEvent(eventEntity, artistEntities)
     }
 
+    // Entfernt das Event und alle zugehörigen Artists direkt per ID —
+    // kein getAllSavedEvents().first() mehr nötig, das einen teuren Flow-Observer öffnet.
+    override suspend fun removeEventFromFavorites(eventId: String) {
+        dao.deleteFullEvent(eventId)
+    }
+
+    // Gibt true zurück, wenn das Event bereits in der Datenbank vorhanden ist
+    override suspend fun isEventSaved(eventId: String): Boolean {
+        return dao.isEventSaved(eventId) > 0
+    }
+
+    // Setzt das iWasThere-Flag direkt per SQL-Update —
+    // kein Read-Modify-Write über getAllSavedEvents().first() mehr nötig.
+    override suspend fun updateEventAttendance(eventId: String, iWasThere: Boolean) {
+        dao.updateAttendance(eventId, iWasThere)
+    }
+
+    // Aktualisiert die Sternebewertung direkt per SQL-Update —
+    // kein Read-Modify-Write über getAllSavedEvents().first() mehr nötig.
+    override suspend fun updateEventRating(eventId: String, rating: Int) {
+        dao.updateRating(eventId, rating)
+    }
+
+    // Setzt oder entfernt den Like eines Artists (Herz-Icon im Lineup)
+    override suspend fun toggleArtistLike(artistId: Long, liked: Boolean) {
+        dao.setArtistLiked(artistId, liked)
+    }
+
+    // Gibt alle Artists zurück, die der Nutzer geliked hat
+    override fun getLikedArtists(): Flow<List<ArtistEntity>> {
+        return dao.getLikedArtists()
+    }
+
     //TODO update
 }

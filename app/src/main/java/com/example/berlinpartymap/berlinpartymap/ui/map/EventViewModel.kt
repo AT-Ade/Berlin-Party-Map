@@ -75,10 +75,22 @@ class EventViewModel(
     fun saveEventToFavorites(eventDto: EventDto) {
         viewModelScope.launch {
             try {
+                println("!!!! MAP_SCREEN: Versuche Event zu speichern: ${eventDto.name} mit ID: ${eventDto.url}")
                 repository.saveDtoToDatabase(eventDto)
-                // Hier könntest du optional ein "Erfolgreich gespeichert"-Feedback für die UI triggern
+                println("!!!! MAP_SCREEN: Erfolgreich in DB geschrieben!")
             } catch (e: Exception) {
-                // Wichtig, falls beim DB-Insert etwas schiefgeht (z.B. Constraint-Fehler)
+                println("!!!! MAP_SCREEN: FEHLER BEIM SPEICHERN:")
+                e.printStackTrace()
+            }
+        }
+    }
+
+    // Entfernt ein Event aus den Favoriten (wird aufgerufen wenn Stern erneut gedrückt wird)
+    fun removeEventFromFavorites(eventId: String) {
+        viewModelScope.launch {
+            try {
+                repository.removeEventFromFavorites(eventId)
+            } catch (e: Exception) {
                 e.printStackTrace()
             }
         }

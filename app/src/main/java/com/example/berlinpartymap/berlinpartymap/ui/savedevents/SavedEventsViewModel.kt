@@ -28,6 +28,23 @@ class SavedEventsViewModel(
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = emptyList()
         )
+
+    // Entfernt ein Event explizit aus den Favoriten (z.B. per erneutem Tippen auf Stern)
+    fun removeFavorite(eventId: String) {
+        viewModelScope.launch {
+            repository.removeEventFromFavorites(eventId)
+        }
+    }
+
+    // Gibt ein einzelnes gespeichertes Event anhand seiner ID zurück (für Detail-Screen)
+    fun getEventById(eventId: String): EventWithLineup? {
+        return savedEvents.value.find { it.event.eventId == eventId }
+    }
+
+    // Setzt oder entfernt den Like eines Artists im Lineup
+    fun toggleArtistLike(artistId: Long, currentlyLiked: Boolean) {
+        viewModelScope.launch {
+            repository.toggleArtistLike(artistId, !currentlyLiked)
+        }
+    }
 }
-
-

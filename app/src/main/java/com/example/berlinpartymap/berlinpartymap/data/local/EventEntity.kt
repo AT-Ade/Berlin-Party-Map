@@ -18,5 +18,5 @@ data class EventEntity(
     val flyerURL: String,
     val price: Double,
     val rating: Int? = null,
-    val iWasThere: Boolean = false
+    val iWasThere: Boolean? = null
 )

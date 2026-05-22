@@ -16,12 +16,15 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccessTimeFilled
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.outlined.AccessTime
 import androidx.compose.material.icons.outlined.CalendarToday
 import androidx.compose.material.icons.outlined.Euro
 import androidx.compose.material.icons.outlined.LocationOn
+import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material.icons.rounded.ArrowBackIosNew
 import androidx.compose.material.icons.rounded.Star
+import androidx.compose.material.icons.twotone.Star
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -56,7 +59,10 @@ fun EventDetailView(
     event: EventDto,
     onClick: () -> Unit,
     saveButtonClick: (EventDto) -> Unit,
-    isSaved: Boolean
+    isSaved: Boolean,
+    // Set mit Namen der Artists, die der Nutzer bereits geliked hat.
+    // Ermöglicht konsistente Like-Anzeige über Map-, Favoriten- und History-Tab.
+    likedArtistNames: Set<String>
 ) {
     //Parsen des ISO-Strings
     val zonedDateStartTime = ZonedDateTime.parse(event.startTime)
@@ -89,7 +95,7 @@ fun EventDetailView(
 
             StyledIconButton(
                 onClick = { saveButtonClick(event) },
-                icon = Icons.Rounded.Star,
+                icon = if (isSaved) Icons.Rounded.Star else Icons.TwoTone.Star,
                 iconColor = if (isSaved) Color.Green else Color.White
             )
         }
@@ -249,6 +255,9 @@ fun EventDetailView(
                         verticalArrangement = Arrangement.spacedBy(4.dp)    // Abstand zwischen den Zeilen
                     ) {
                         event.lineup.forEach { artist ->
+                            // Prüft ob dieser Artist vom Nutzer geliked wurde (gespeichert in DB)
+                            val isLiked = likedArtistNames.contains(artist.name)
+
                             Card(
                                 colors = CardDefaults.cardColors(
                                     containerColor = Color.Transparent,
@@ -258,11 +267,27 @@ fun EventDetailView(
                                     .padding(4.dp)
                                     .border(
                                         width = 1.dp,
-                                        color = Color.White,
+                                        // Gelikte Artists bekommen roten Rahmen
+                                        color = if (isLiked) Color.Red else Color.White,
                                         shape = RoundedCornerShape(10.dp)
                                     )
                             ) {
-                                Text(artist.name, modifier = Modifier.padding(8.dp))
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Text(artist.name, modifier = Modifier.padding(0.dp))
+                                    // Herz-Icon erscheint wenn der Artist bereits anderswo geliked wurde
+                                    if (isLiked) {
+                                        Icon(
+                                            imageVector = Icons.Filled.Favorite,
+                                            contentDescription = "Liked",
+                                            tint = Color.Red,
+                                            modifier = Modifier.size(14.dp)
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
@@ -331,7 +356,8 @@ private fun EventDetailViewPreview() {
                 ),
                 onClick = {},
                 saveButtonClick = {},
-                isSaved = true
+                isSaved = true,
+                likedArtistNames = emptySet()
             )
         }
     }

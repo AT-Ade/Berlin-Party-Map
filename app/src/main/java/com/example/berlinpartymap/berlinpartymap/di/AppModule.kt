@@ -6,6 +6,7 @@ import com.example.berlinpartymap.data.remote.api.APIService
 import com.example.berlinpartymap.data.repository.EventRepository
 import com.example.berlinpartymap.data.repository.EventRepositoryImpl
 import com.example.berlinpartymap.ui.map.EventViewModel
+import com.example.berlinpartymap.ui.partyhistory.PartyHistoryViewModel
 import com.example.berlinpartymap.ui.savedevents.SavedEventsViewModel
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
@@ -22,6 +23,9 @@ val appModule = module {
     // ------------- Database & DAO -------------
     single {
         Room.databaseBuilder(androidContext(), EventDatabase::class.java, "event_database")
+            // Während der Entwicklung: bei Schema-Konflikt DB löschen und neu erstellen.
+            // Für Produktion müsste hier eine Migration stehen.
+            .fallbackToDestructiveMigration()
             .build()
     }
     single { get<EventDatabase>().eventDao() }
@@ -51,8 +55,10 @@ val appModule = module {
 
         viewModelOf(::EventViewModel)
 
-
         viewModelOf(::SavedEventsViewModel)
+
+        // History-Tab ViewModel: filtert besuchte Events und steuert das Bestätigungs-Sheet
+        viewModelOf(::PartyHistoryViewModel)
 
 
 }

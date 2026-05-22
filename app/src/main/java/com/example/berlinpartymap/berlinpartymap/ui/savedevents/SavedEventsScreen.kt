@@ -30,7 +30,9 @@ import org.koin.androidx.compose.koinViewModel
 @Composable
 fun SavedEventsScreen(
     modifier: Modifier = Modifier,
-    viewModel: SavedEventsViewModel = koinViewModel()
+    viewModel: SavedEventsViewModel = koinViewModel(),
+    // Callback wenn ein List-Item angetippt wird; übergibt die eventId für Navigation
+    onEventClick: (String) -> Unit = {}
 ) {
     // Hier lauscht die UI auf Änderungen in der Datenbank
     val savedEventsWithLineup by viewModel.savedEvents.collectAsState()
@@ -77,7 +79,11 @@ fun SavedEventsScreen(
 //                        onClick = TODO()
 //                    )
 
-                    SavedEventListItem(event = item.event, onClick = {})
+                    SavedEventListItem(
+                        event = item.event,
+                        // Navigiert zur Detail-Ansicht mit der Event-ID als Argument
+                        onClick = { onEventClick(item.event.eventId) }
+                    )
 
 //                    Card(modifier = Modifier.fillMaxWidth()) {
 //                        Column(modifier = Modifier.padding(16.dp)) {
