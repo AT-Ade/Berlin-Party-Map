@@ -1,5 +1,7 @@
 package com.example.berlinpartymap.ui.partyhistory
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -11,6 +13,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
@@ -19,6 +22,7 @@ import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -33,9 +37,11 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -68,11 +74,11 @@ fun PartyHistoryScreen(
     )
 
     // Bottom-Sheet automatisch öffnen, sobald unbestätigte Events vorhanden sind
-    LaunchedEffect(pendingCount) {
-        if (pendingCount > 0) {
-            viewModel.openConfirmationSheet()
-        }
-    }
+//    LaunchedEffect(pendingCount) {
+//        if (pendingCount > 0) {
+//            viewModel.openConfirmationSheet()
+//        }
+//    }
 
     // Bottom-Sheet automatisch schließen, wenn alle Events bestätigt wurden
     LaunchedEffect(pendingEvents) {
@@ -131,7 +137,7 @@ fun PartyHistoryScreen(
             )
         } else {
             LazyColumn(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.fillMaxWidth().weight(1f),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items(visitedEvents) { item ->
@@ -142,6 +148,39 @@ fun PartyHistoryScreen(
                 }
             }
         }
+
+        // -------------- Banner mit button um Bestätigung einzufordern ---------------
+
+        if (!pendingEvents.isEmpty())
+            Column(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    "${pendingCount} gespeichertes Event vergangen. Warst du da?",
+                    modifier = Modifier.padding(8.dp)
+                )
+                Button(
+                    onClick = { viewModel.openConfirmationSheet() },
+                    modifier = Modifier.padding(8.dp).fillMaxWidth().border(
+                        width = 1.dp,
+                        color = Color.White,
+                        shape = CircleShape
+                    ),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.DarkGray.copy(0.7f),
+                        contentColor = Color.White
+                    )
+                ) {
+                    Text(
+                        "Jetzt bestätigen",
+                        modifier = Modifier
+                            .padding(8.dp)
+                            ,
+                        textAlign = TextAlign.Center,
+
+                    )
+                }
+            }
     }
 
     // -------- Bottom-Sheet: Anwesenheitsbestätigung --------
@@ -200,11 +239,14 @@ private fun AttendanceConfirmationSheetContent(
         // Schließen-Button am Ende der Liste
         Button(
             onClick = onClose,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 8.dp, bottom = 24.dp),
+            modifier = Modifier.padding(8.dp).fillMaxWidth(),
             colors = ButtonDefaults.buttonColors(
-                containerColor = Color.DarkGray.copy(0.6f)
+                containerColor = Color.DarkGray.copy(0.7f),
+                contentColor = Color.White
+            ),
+            border = BorderStroke(
+                width = 1.dp,
+                color = Color.White
             )
         ) {
             Text("Später")
