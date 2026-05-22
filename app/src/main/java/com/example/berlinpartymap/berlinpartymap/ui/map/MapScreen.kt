@@ -15,6 +15,7 @@ import org.koin.androidx.compose.koinViewModel
 import org.maplibre.compose.camera.CameraPosition
 import org.maplibre.compose.camera.rememberCameraState
 import org.maplibre.spatialk.geojson.Position
+import kotlin.String
 
 @Composable
 fun MapScreen(
@@ -34,6 +35,10 @@ fun MapScreen(
     var mapListToggle by remember { mutableStateOf(true) }
 
     // -------- Animationen --------
+    // HINWEIS: Diese Animationen lösen bei jedem Frame eine Recomposition des gesamten
+    // MapScreen aus. Das ist kein Problem mehr, weil MapContainer die FeatureCollection
+    // über `remember(locations)` cacht – MapLibre lädt die Karte also nicht neu,
+    // nur weil sich mapHeight/listHeight geändert hat.
     val mapHeight by animateDpAsState(
         targetValue = if (mapListToggle) 600.dp else 200.dp,
         animationSpec = tween(200)
@@ -98,6 +103,22 @@ fun MapScreen(
         eventViewModel.loadInitialData()
     }
 
+    // Prüft ob das aktuell ausgewählte Event bereits als Favorit gespeichert ist
+    val isCurrentEventSaved = savedEventsWithLineup.any {
+        it.event.eventId.trim().lowercase() == selectedEvent?.url?.trim()?.lowercase()
+    }
+
+    // Alle Artist-Namen extrahieren, die in der DB als geliked (iLike = true) markiert sind
+    val likedArtistNames: Set<String> by remember(savedEventsWithLineup) {
+        derivedStateOf {
+            savedEventsWithLineup
+                .flatMap { eventWithLineup -> eventWithLineup.lineup } // Holt die Liste der ArtistEntity
+                .filter { artistEntity -> artistEntity.iLike }          // Filtert nach iLike == true
+                .map { artistEntity -> artistEntity.name }              // Holt den Namen (String)
+                .toSet()                                                // Macht ein Set<String> daraus
+        }
+    }
+
     // -------- UI --------
     Box {
         Background()
@@ -151,8 +172,19 @@ fun MapScreen(
                     eventViewModel.clearSelection()
                     eventViewModel.clearHighlight()
                 },
-                saveButtonclick = {eventViewModel.saveEventToFavorites(eventDto = selectedEvent!!)},
-                isSaved = savedEventsWithLineup.any { it.event.eventId == selectedEvent?.url }            )
+                // BUG FIX: Vorher `{ eventViewModel.saveEventToFavorites(eventDto = selectedEvent!!) }`
+                // — das Lambda rief saveButtonclick nie auf (wurde als Objekt übergeben, nicht aufgerufen).
+                // Toggle-Logik: bereits gespeicherte Events werden beim erneuten Tippen entfernt.
+                saveButtonclick = {
+                    if (isCurrentEventSaved) {
+                        eventViewModel.removeEventFromFavorites(it.url)
+                    } else {
+                        eventViewModel.saveEventToFavorites(it)
+                    }
+                },
+                isSaved = isCurrentEventSaved,
+                likedArtistNames = likedArtistNames
+            )
         }
     }
 }

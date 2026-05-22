@@ -44,7 +44,8 @@ fun EventContainer(
     onEventClick: (EventDto) -> Unit,
     onBack: () -> Unit,
     saveButtonclick: (EventDto) -> Unit,
-    isSaved: Boolean
+    isSaved: Boolean,
+    likedArtistNames: Set<String>
 ) {
     Box(modifier = Modifier.height(listHeight)) {
 
@@ -89,8 +90,11 @@ fun EventContainer(
                     selectedEvent?.let {
                         EventDetailView(event = it,
                             onClick = onBack,
-                            saveButtonClick = { saveButtonclick },
-                            isSaved = isSaved
+                            // BUG FIX: Vorher `saveButtonClick = { saveButtonclick }` übergab
+                            // das Lambda als Objekt zurück, statt es aufzurufen. Korrekt:
+                            saveButtonClick = { saveButtonclick(it) },
+                            isSaved = isSaved,
+                            likedArtistNames = likedArtistNames
                         )
                     }
                 }
@@ -106,4 +110,3 @@ fun EventContainer(
         }
     }
 }
-

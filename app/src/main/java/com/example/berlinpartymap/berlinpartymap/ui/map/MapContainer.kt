@@ -11,6 +11,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
@@ -23,7 +24,6 @@ import com.example.berlinpartymap.data.remote.dto.EventDto
 import com.example.berlinpartymap.ui.components.CustomMapInfoWindow
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonPrimitive
-import org.maplibre.compose.camera.CameraPosition
 import org.maplibre.compose.camera.CameraState
 import org.maplibre.compose.expressions.dsl.const
 import org.maplibre.compose.expressions.dsl.image
@@ -47,6 +47,23 @@ fun MapContainer(
     locations: List<Feature<Point, JsonObject>>,
     onMarkerClick: (String) -> Unit   // gibt die Event-ID (url) zurück
 ) {
+    // FIX ANR #1 – Stabile GeoJSON-Source:
+    // Vorher wurde bei jeder Recomposition `FeatureCollection(locations)` als neues
+    // Objekt übergeben. Da `animateDpAsState` für mapHeight/listHeight bei jedem
+    // Animations-Frame eine Recomposition auslöst (bis zu 60×/Sek.), hat MapLibre
+    // die Karte bei jedem Frame komplett neu geladen → Endlosschleife + ANR.
+    // `remember(locations)` cacht das Objekt und erstellt es nur neu, wenn sich
+    // die tatsächlichen Event-Daten ändern.
+    val featureCollection = remember(locations) {
+        FeatureCollection(locations)
+    }
+
+    // FIX ANR #2 – Gecachtes Marker-Icon:
+    // `painterResource()` wurde vorher innerhalb des MapLibre-Scopes bei jeder
+    // Recomposition aufgerufen, was wiederholtes Dekodieren der Ressource verursacht hat.
+    // Außerhalb platziert wird der Painter einmal erstellt und danach wiederverwendet.
+    val markerPainter = painterResource(R.drawable.markerwhite)
+
     Box {
         Card(
             modifier = Modifier
@@ -61,16 +78,16 @@ fun MapContainer(
                 cameraState = cameraState,
                 baseStyle = BaseStyle.Uri("https://tiles.openfreemap.org/styles/dark")
             ) {
+                // Stabiles Objekt übergeben – MapLibre lädt die Source nur neu
+                // wenn sich der Inhalt tatsächlich geändert hat.
                 val source = rememberGeoJsonSource(
-                    data = GeoJsonData.Features(
-                        FeatureCollection(locations)
-                    )
+                    data = GeoJsonData.Features(featureCollection)
                 )
 
                 SymbolLayer(
                     id = "event-markers",
                     source = source,
-                    iconImage = image(painterResource(R.drawable.markerwhite)),
+                    iconImage = image(markerPainter),
                     iconSize = const(1f),
                     iconAllowOverlap = const(true),
                     iconIgnorePlacement = const(true),
