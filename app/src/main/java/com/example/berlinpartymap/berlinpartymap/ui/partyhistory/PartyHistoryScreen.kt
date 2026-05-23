@@ -1,8 +1,8 @@
 package com.example.berlinpartymap.ui.partyhistory
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -17,13 +17,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.HelpOutline
-import androidx.compose.material3.Badge
-import androidx.compose.material3.BadgedBox
+import androidx.compose.material.icons.filled.Sort
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -35,9 +34,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -49,19 +50,11 @@ import com.example.berlinpartymap.data.local.EventWithLineup
 import com.example.berlinpartymap.ui.savedevents.SavedEventListItem
 import org.koin.androidx.compose.koinViewModel
 
-//import org.koin.androidx.compose.koinViewModel
-
-// BottomSheet wurde gegenüber Dialog bevorzugt, weil:
-// 1. Die Liste der Events potenziell lang sein kann → Bottom Sheet scrollt nativ
-// 2. Material3-Best-Practice für Listen-basierte Aktionen auf Mobile
-// 3. Weniger aufdringlich als ein modaler Dialog, lässt sich natürlich wegwischen
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PartyHistoryScreen(
     modifier: Modifier = Modifier,
     viewModel: PartyHistoryViewModel = koinViewModel(),
-    // Callback wenn ein List-Item angetippt wird; übergibt die eventId für Navigation
     onEventClick: (String) -> Unit = {}
 ) {
     val visitedEvents by viewModel.visitedEvents.collectAsState()
@@ -69,18 +62,16 @@ fun PartyHistoryScreen(
     val pendingCount by viewModel.pendingConfirmationCount.collectAsState()
     val showSheet by viewModel.showConfirmationSheet.collectAsState()
 
+    // Aktuelle Sortierung aus dem ViewModel
+    val currentSortOrder by viewModel.currentSortOrder.collectAsState()
+
+    // Zustand, ob das Dropdown-Menü gerade geöffnet ist
+    var showSortMenu by remember { mutableStateOf(false) }
+
     val sheetState = rememberModalBottomSheetState(
-        skipPartiallyExpanded = false // Partial Expand erlaubt für kurze Listen
+        skipPartiallyExpanded = false
     )
 
-    // Bottom-Sheet automatisch öffnen, sobald unbestätigte Events vorhanden sind
-//    LaunchedEffect(pendingCount) {
-//        if (pendingCount > 0) {
-//            viewModel.openConfirmationSheet()
-//        }
-//    }
-
-    // Bottom-Sheet automatisch schließen, wenn alle Events bestätigt wurden
     LaunchedEffect(pendingEvents) {
         if (pendingEvents.isEmpty() && showSheet) {
             viewModel.closeConfirmationSheet()
@@ -93,11 +84,11 @@ fun PartyHistoryScreen(
             .padding(16.dp)
     ) {
 
-        // -------- Kopfzeile mit Titel und Re-Open-Button --------
+        // -------- Kopfzeile mit Titel und Dropdown-Sortier-Button --------
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 16.dp, bottom = 8.dp),
+                .padding(top = 16.dp, bottom = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
@@ -106,23 +97,68 @@ fun PartyHistoryScreen(
                 style = MaterialTheme.typography.titleLarge
             )
 
-            // Button zum manuellen Wiederöffnen des Bestätigungs-Sheets
-            // Zeigt Badge mit Anzahl unbestätigter Events, wenn welche vorhanden
-            BadgedBox(
-                badge = {
-                    if (pendingCount > 0) {
-                        Badge { Text(pendingCount.toString()) }
-                    }
-                }
-            ) {
-                IconButton(
-                    onClick = { viewModel.openConfirmationSheet() },
-                    enabled = pendingCount > 0
-                ) {
+            // Box hält das Dropdown-Menü an der richtigen Position fixiert
+            Box {
+                IconButton(onClick = { showSortMenu = true }) {
                     Icon(
-                        imageVector = Icons.Filled.HelpOutline,
-                        contentDescription = "Anwesenheit bestätigen",
-                        tint = if (pendingCount > 0) MaterialTheme.colorScheme.primary else Color.Gray
+                        imageVector = Icons.Filled.Sort,
+                        contentDescription = "Sortieren",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+
+                // Das eigentliche Dropdown-Menü
+                DropdownMenu(
+                    expanded = showSortMenu,
+                    onDismissRequest = { showSortMenu = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("Neueste zuerst") },
+                        onClick = {
+                            viewModel.setSortOrder(HistorySortOrder.DATE_DESC)
+                            showSortMenu = false
+                        },
+                        trailingIcon = {
+                            if (currentSortOrder == HistorySortOrder.DATE_DESC) {
+                                Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(16.dp))
+                            }
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Älteste zuerst") },
+                        onClick = {
+                            viewModel.setSortOrder(HistorySortOrder.DATE_ASC)
+                            showSortMenu = false
+                        },
+                        trailingIcon = {
+                            if (currentSortOrder == HistorySortOrder.DATE_ASC) {
+                                Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(16.dp))
+                            }
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Beste Bewertung") },
+                        onClick = {
+                            viewModel.setSortOrder(HistorySortOrder.RATING_DESC)
+                            showSortMenu = false
+                        },
+                        trailingIcon = {
+                            if (currentSortOrder == HistorySortOrder.RATING_DESC) {
+                                Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(16.dp))
+                            }
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Niedrigste Bewertung") },
+                        onClick = {
+                            viewModel.setSortOrder(HistorySortOrder.RATING_ASC)
+                            showSortMenu = false
+                        },
+                        trailingIcon = {
+                            if (currentSortOrder == HistorySortOrder.RATING_ASC) {
+                                Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(16.dp))
+                            }
+                        }
                     )
                 }
             }
@@ -149,23 +185,23 @@ fun PartyHistoryScreen(
             }
         }
 
-        // -------------- Banner mit button um Bestätigung einzufordern ---------------
-
-        if (!pendingEvents.isEmpty())
+        // -------------- Banner mit Button um Bestätigung einzufordern ---------------
+        if (pendingEvents.isNotEmpty()) {
             Column(
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
             ) {
                 Text(
                     "${pendingCount} gespeichertes Event vergangen. Warst du da?",
-                    modifier = Modifier.padding(8.dp)
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                    style = MaterialTheme.typography.bodyMedium
                 )
                 Button(
                     onClick = { viewModel.openConfirmationSheet() },
-                    modifier = Modifier.padding(8.dp).fillMaxWidth().border(
-                        width = 1.dp,
-                        color = Color.White,
-                        shape = CircleShape
-                    ),
+                    modifier = Modifier
+                        .padding(8.dp)
+                        .fillMaxWidth(),
+                    shape = CircleShape,
+                    border = BorderStroke(width = 1.dp, color = Color.White),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color.DarkGray.copy(0.7f),
                         contentColor = Color.White
@@ -173,14 +209,12 @@ fun PartyHistoryScreen(
                 ) {
                     Text(
                         "Jetzt bestätigen",
-                        modifier = Modifier
-                            .padding(8.dp)
-                            ,
-                        textAlign = TextAlign.Center,
-
+                        modifier = Modifier.padding(8.dp),
+                        textAlign = TextAlign.Center
                     )
                 }
             }
+        }
     }
 
     // -------- Bottom-Sheet: Anwesenheitsbestätigung --------
@@ -213,7 +247,6 @@ private fun AttendanceConfirmationSheetContent(
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp)
     ) {
-        // Überschrift
         Text(
             text = "Warst du dabei?",
             fontSize = 20.sp,
@@ -227,7 +260,6 @@ private fun AttendanceConfirmationSheetContent(
             modifier = Modifier.padding(bottom = 16.dp)
         )
 
-        // Liste der unbestätigten vergangenen Events
         pendingEvents.forEach { item ->
             AttendanceConfirmationItem(
                 eventWithLineup = item,
@@ -236,17 +268,16 @@ private fun AttendanceConfirmationSheetContent(
             )
         }
 
-        // Schließen-Button am Ende der Liste
         Button(
             onClick = onClose,
-            modifier = Modifier.padding(8.dp).fillMaxWidth(),
+            modifier = Modifier
+                .padding(8.dp)
+                .fillMaxWidth(),
+            shape = CircleShape,
+            border = BorderStroke(width = 1.dp, color = Color.White),
             colors = ButtonDefaults.buttonColors(
                 containerColor = Color.DarkGray.copy(0.7f),
                 contentColor = Color.White
-            ),
-            border = BorderStroke(
-                width = 1.dp,
-                color = Color.White
             )
         ) {
             Text("Später")
@@ -277,22 +308,20 @@ private fun AttendanceConfirmationItem(
 
         Spacer(modifier = Modifier.width(8.dp))
 
-        // Haken-Button: Ja, ich war da
         IconButton(onClick = onConfirm) {
             Icon(
                 imageVector = Icons.Filled.Check,
                 contentDescription = "Ja, ich war da",
-                tint = Color(0xFF4CAF50), // Grün
+                tint = Color(0xFF4CAF50),
                 modifier = Modifier.size(32.dp)
             )
         }
 
-        // Kreuz-Button: Nein, ich war nicht da → Event wird aus Favoriten entfernt
         IconButton(onClick = onDeny) {
             Icon(
                 imageVector = Icons.Filled.Close,
                 contentDescription = "Nein, ich war nicht da",
-                tint = Color(0xFFF44336), // Rot
+                tint = Color(0xFFF44336),
                 modifier = Modifier.size(32.dp)
             )
         }

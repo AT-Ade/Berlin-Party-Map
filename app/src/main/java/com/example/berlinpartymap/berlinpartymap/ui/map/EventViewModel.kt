@@ -61,7 +61,7 @@ class EventViewModel(
     fun loadEvents() {
         viewModelScope.launch {
             try {
-                val result = repository.getEvents()
+                val result = repository.getEvents().sortedBy { it.price }
                 _events.value = result
             } catch (e: Exception) {
 

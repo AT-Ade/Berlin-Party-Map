@@ -3,48 +3,71 @@ package com.example.berlinpartymap.ui.savedevents
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.berlinpartymap.data.local.EventWithLineup
-import com.example.berlinpartymap.data.remote.dto.EventDto
 import com.example.berlinpartymap.data.repository.EventRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-data class SavedEventsViewModelUiState(
-    val something: String = ""
-)
+// 1. Definition der Sortier-Optionen für die gespeicherten Events
+enum class SavedEventsSortOrder {
+    DATE_ASC,            // Chronologisch (nächstes Event zuerst)
+    PRICE_ASC,           // Günstigste zuerst (Gratis/Keine Angabe unten)
+    PRICE_DESC,          // Teuerste zuerst (Gratis/Keine Angabe unten)
+    LIKED_ARTISTS_DESC   // Meiste gelikte Artists im Lineup zuerst
+}
 
 class SavedEventsViewModel(
-    private val repository: EventRepository // Injection via Koin
+    private val repository: EventRepository
 ) : ViewModel() {
 
-    // Wir greifen direkt auf den Flow des Repositories zu
+    // 2. State für die aktuelle Sortierung (Standard: Nach Datum)
+    private val _currentSortOrder = MutableStateFlow(SavedEventsSortOrder.DATE_ASC)
+    val currentSortOrder: StateFlow<SavedEventsSortOrder> = _currentSortOrder
+
+    // 3. Kombinieren des Datenbank-Flows mit unserem Sortier-Zustand
     val savedEvents: StateFlow<List<EventWithLineup>> = repository.getAllSavedEvents()
+        .combine(_currentSortOrder) { eventList, sortOrder ->
+            when (sortOrder) {
+                // Nach Datum aufsteigend sortieren
+                SavedEventsSortOrder.DATE_ASC -> eventList.sortedBy { it.event.startTime }
+
+                // Preis aufsteigend (Günstigste zuerst, unbewertet/null am Ende)
+                SavedEventsSortOrder.PRICE_ASC -> eventList.sortedWith(
+                    compareBy(nullsLast()) { it.event.price }
+                )
+
+                // Preis absteigend (Teuerste zuerst, unbewertet/null am Ende)
+                SavedEventsSortOrder.PRICE_DESC -> eventList.sortedWith(
+                    compareBy(nullsLast(reverseOrder())) { it.event.price }
+                )
+
+                // Meiste gelikte Artists zuerst
+                // Wir zählen, wie viele Artists im `lineup` das Flag `isLiked == true` haben
+                SavedEventsSortOrder.LIKED_ARTISTS_DESC -> eventList.sortedByDescending { item ->
+                    item.lineup.count { artist -> artist.iLike }
+                }
+            }
+        }
         .stateIn(
             scope = viewModelScope,
-            // Hält den Datenstrom aktiv, solange der Screen sichtbar ist (plus 5 Sek. Puffer)
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = emptyList()
         )
 
-    // Entfernt ein Event explizit aus den Favoriten (z.B. per erneutem Tippen auf Stern)
-    fun removeFavorite(eventId: String) {
-        viewModelScope.launch {
-            repository.removeEventFromFavorites(eventId)
-        }
+    // 4. Setter für die UI
+    fun setSortOrder(newOrder: SavedEventsSortOrder) {
+        _currentSortOrder.value = newOrder
     }
 
-    // Gibt ein einzelnes gespeichertes Event anhand seiner ID zurück (für Detail-Screen)
-    fun getEventById(eventId: String): EventWithLineup? {
-        return savedEvents.value.find { it.event.eventId == eventId }
-    }
-
-    // Setzt oder entfernt den Like eines Artists im Lineup
-    fun toggleArtistLike(artistId: Long, currentlyLiked: Boolean) {
+    fun removeEventFromFavorites(eventId: String) {
         viewModelScope.launch {
-            repository.toggleArtistLike(artistId, !currentlyLiked)
+            // Entweder löschst du es komplett oder setzt iWasThere / saved zurück,
+            // je nachdem wie deine Repository-Methode benannt ist:
+            repository.updateEventAttendance(eventId, iWasThere = false)
+            // ODER falls du ein direktes Löschen hast: repository.deleteSavedEvent(eventId)
         }
     }
 }

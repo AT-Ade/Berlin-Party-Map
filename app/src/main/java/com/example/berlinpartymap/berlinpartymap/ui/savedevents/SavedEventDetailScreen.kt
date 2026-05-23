@@ -94,7 +94,7 @@ fun SavedEventDetailScreen(
             )
             // Stern-Button: bereits gespeichert → grün; erneutes Tippen entfernt aus Favoriten
             StyledIconButton(
-                onClick = { viewModel.removeFavorite(eventId) },
+                onClick = { viewModel.removeEventFromFavorites(eventId) },
                 icon = Icons.Rounded.Star,
                 iconColor = Color.Green
             )

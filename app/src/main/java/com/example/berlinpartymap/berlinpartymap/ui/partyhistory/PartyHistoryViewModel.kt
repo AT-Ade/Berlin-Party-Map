@@ -7,18 +7,28 @@ import com.example.berlinpartymap.data.repository.EventRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine // WICHTIG für das Zusammenführen der States
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.ZonedDateTime
 
+// 1. Definition der Sortier-Optionen
+enum class HistorySortOrder {
+    DATE_ASC,        // Älteste zuerst
+    DATE_DESC,       // Neueste zuerst
+    RATING_ASC,      // Schlechteste Bewertung zuerst (Unbewertet ganz unten)
+    RATING_DESC      // Beste Bewertung zuerst (Unbewertet ganz unten)
+}
+
 class PartyHistoryViewModel(
     private val repository: EventRepository // Injection via Koin
 ) : ViewModel() {
 
-    // Einzige DB-Subscription — alle abgeleiteten Flows teilen sich diesen einen StateFlow.
-    // Früher hatten visitedEvents und pendingConfirmationEvents jeweils eigene map()-Chains
-    // auf getAllSavedEvents(), was zwei separate DB-Observer öffnete.
+    // 2. State für die aktuelle Sortierung (Standard: Neueste Partys zuerst)
+    private val _currentSortOrder = MutableStateFlow(HistorySortOrder.DATE_DESC)
+    val currentSortOrder: StateFlow<HistorySortOrder> = _currentSortOrder
+
     private val allSavedEvents: StateFlow<List<EventWithLineup>> = repository.getAllSavedEvents()
         .stateIn(
             scope = viewModelScope,
@@ -26,11 +36,32 @@ class PartyHistoryViewModel(
             initialValue = emptyList()
         )
 
-    // Alle Events, die bereits in der Vergangenheit liegen und besucht wurden (iWasThere = true)
+    // 3. visitedEvents kombiniert nun die gefilterte Liste mit der gewählten Sortierung
     val visitedEvents: StateFlow<List<EventWithLineup>> = allSavedEvents
         .map { list -> list.filter { it.event.iWasThere == true && isInPast(it.event.endTime) } }
+        // combine sorgt dafür, dass bei jeder Änderung von allSavedEvents ODER der Sortierung neu berechnet wird
+        .combine(_currentSortOrder) { filteredList, sortOrder ->
+            when (sortOrder) {
+                HistorySortOrder.DATE_ASC -> filteredList.sortedBy { it.event.startTime }
+                HistorySortOrder.DATE_DESC -> filteredList.sortedByDescending { it.event.startTime }
+
+                // Aufsteigend nach Bewertung, Unbewertete (null) ganz nach unten
+                HistorySortOrder.RATING_ASC -> filteredList.sortedWith(
+                    compareBy(nullsLast()) { it.event.rating }
+                )
+
+                // Absteigend nach Bewertung, Unbewertete (null) trotzdem ganz nach unten
+                HistorySortOrder.RATING_DESC -> filteredList.sortedWith(
+                    compareBy(nullsLast(reverseOrder())) { it.event.rating }
+                )
+            }
+        }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    // 4. Funktion, um die Sortierung aus der UI heraus zu ändern
+    fun setSortOrder(newOrder: HistorySortOrder) {
+        _currentSortOrder.value = newOrder
+    }
     // Events in der Vergangenheit, bei denen der Nutzer noch nicht angegeben hat ob er da war.
     // Diese werden im Bottom-Sheet zur Bestätigung angezeigt.
     val pendingConfirmationEvents: StateFlow<List<EventWithLineup>> = allSavedEvents
