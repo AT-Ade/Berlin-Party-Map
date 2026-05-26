@@ -13,6 +13,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -59,7 +60,6 @@ fun EventContainer(
     onRetry: () -> Unit,
     selectedEvent: EventDto?,
     eventSelected: Boolean,
-    //listHeight: Dp,
     elevation: Dp,
     mapListToggle: Boolean,
     onToggle: () -> Unit,
@@ -74,7 +74,7 @@ fun EventContainer(
         Column(
             modifier = Modifier
                 .padding(top = 4.dp, start = 8.dp, end = 8.dp)
-                .fillMaxSize() // Auch hier fillMaxSize statt height!
+                .fillMaxSize()
                 .shadow(elevation, RoundedCornerShape(10.dp))
                 .background(Color.Black.copy(0.97f), RoundedCornerShape(15.dp))
                 .border(1.dp, Color.White, RoundedCornerShape(15.dp))
@@ -103,10 +103,7 @@ fun EventContainer(
             ) { (selected, isContainerSmall) ->
 
                 if (!selected) {
-                    // Eine umschließende Column sorgt dafür, dass die Buttons oben stehen und die Liste darunter abfängt
                     Column(modifier = Modifier.fillMaxSize()) {
-
-                        // Die Button Row ist nun HIER im animierten Bereich integriert
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -114,14 +111,12 @@ fun EventContainer(
                             horizontalArrangement = Arrangement.spacedBy(6.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            // Tag zurück
                             StyledIconButton(
                                 onClick = onPrevDate,
                                 icon = Icons.AutoMirrored.Rounded.ArrowBackIos,
                                 iconColor = Color.White
                             )
 
-                            // Hauptbutton für DatePicker
                             OutlinedButton(
                                 modifier = Modifier
                                     .weight(1f)
@@ -140,7 +135,6 @@ fun EventContainer(
                                 )
                             }
 
-                            // Tag vorwärts
                             StyledIconButton(
                                 onClick = onNextDate,
                                 icon = Icons.AutoMirrored.Rounded.ArrowForwardIos,
@@ -148,7 +142,6 @@ fun EventContainer(
                             )
                         }
 
-                        // Der eigentliche Content-Bereich (Loading, Error, List) füllt den restlichen Platz
                         Box(
                             modifier = Modifier.weight(1f).fillMaxWidth(),
                             contentAlignment = Alignment.Center
@@ -211,7 +204,6 @@ fun EventContainer(
                         }
                     }
                 } else {
-                    // 2. FALL: Ein Event wurde ausgewählt! (Hier fliegt die Button Row automatisch mit raus)
                     selectedEvent?.let { event ->
                         if (isContainerSmall) {
                             EventInfoBlock(event = event)
@@ -229,49 +221,81 @@ fun EventContainer(
             }
         }
 
-        // JETZT MIT ANIMATION: Ersetzt das nackte "if (mapListToggle)"
+        // JETZT MIT DYNAMISCHEM GRADIENTEN (Oben/Unten) JE NACH SELEKTION
+        // JETZT ENTKOPPELT: Klickfläche oben, visuelle Effekte darunter
         AnimatedVisibility(
             visible = mapListToggle,
             enter = fadeIn(animationSpec = tween(300)),
-            exit = fadeOut(animationSpec = tween(300))
+            exit = fadeOut(animationSpec = tween(300)),
+            modifier = Modifier.matchParentSize() // Zwingt die Animation auf Container-Größe
         ) {
-            Card(
-                shape = RoundedCornerShape(15.dp),
-                modifier = Modifier
-                    .matchParentSize()
-                    .padding(top = 65.dp, start = 8.dp, end = 8.dp)
-                    .clip(RoundedCornerShape(15.dp))
-                    .background(
-                        brush = Brush.verticalGradient(
-                            colors = if (selectedEvent == null) listOf(Color.Transparent, Color.Black)
-                            else listOf(Color.Transparent, Color.Transparent)
-                        ),
-                        shape = RoundedCornerShape(15.dp)
-                    ),
-                colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-                onClick = onToggle,
-            ) {
-                if (selectedEvent == null) {
+            Box(modifier = Modifier.fillMaxSize()) {
+
+                // 1. VISUELLER GRADIENT (Liegt im Hintergrund, schrumpft per Padding)
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(
+                            top = if (selectedEvent == null) 65.dp else 4.dp,
+                            start = 8.dp,
+                            end = 8.dp,
+                            bottom = if (selectedEvent == null) 0.dp else 130.dp
+                        )
+                        .clip(RoundedCornerShape(15.dp))
+                        .background(
+                            brush = Brush.verticalGradient(
+                                colors = if (selectedEvent == null) {
+                                    listOf(Color.Transparent, Color.Black.copy(alpha = 0.8f))
+                                } else {
+                                    listOf(Color.White.copy(alpha = 0.8f), Color.Transparent)
+                                }
+                            ),
+                            shape = RoundedCornerShape(15.dp)
+                        )
+                ) {
+                    // Die Icons und Texte werden in der visuellen Box platziert
                     Box(
-                        Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center,
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = if (selectedEvent == null) Alignment.Center else Alignment.TopCenter
                     ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
+                        if (selectedEvent == null) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center,
+                                modifier = Modifier.padding(top = 16.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.KeyboardDoubleArrowUp,
+                                    contentDescription = "Upwards arrows",
+                                    tint = Color.White
+                                )
+                                Text(
+                                    "Liste anzeigen",
+                                    color = Color.White
+                                )
+                            }
+                        } else {
                             Icon(
                                 imageVector = Icons.Rounded.KeyboardDoubleArrowUp,
                                 contentDescription = "Upwards arrows",
-                                tint = Color.White
-                            )
-                            Text(
-                                "Liste anzeigen",
-                                color = Color.White
+                                tint = Color.Black,
+                                modifier = Modifier.padding(top = 8.dp)
                             )
                         }
                     }
                 }
+
+                // 2. UNSICHTBARE CARD (Liegt ganz oben drüber und füllt die GESAMTE Fläche)
+                Card(
+                    modifier = Modifier.fillMaxSize().padding(top = if (selectedEvent == null) 52.dp else 0.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+                    shape = RoundedCornerShape(15.dp),
+                    onClick = onToggle
+                ) {
+                    // Bleibt leer, fängt rein als Klick-Schnittstelle alle Touches ab
+                }
             }
         }
+
     }
 }

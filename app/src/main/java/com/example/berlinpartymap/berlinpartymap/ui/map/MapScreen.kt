@@ -67,6 +67,15 @@ fun MapScreen(
     )
     val coroutineScope = rememberCoroutineScope()
 
+    LaunchedEffect(selectedDate) {
+        cameraState.animateTo(
+            CameraPosition(
+                target = Position(13.4050, 52.5200),
+                zoom = 11.0
+            )
+        )
+    }
+
     LaunchedEffect(cameraTarget) {
         cameraTarget?.let { target ->
             cameraState.animateTo(

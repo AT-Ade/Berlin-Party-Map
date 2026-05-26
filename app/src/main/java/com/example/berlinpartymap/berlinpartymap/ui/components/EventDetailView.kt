@@ -121,7 +121,7 @@ fun EventDetailView(
                         contentDescription = "${event.name} Flyer",
                         error = painterResource(R.drawable.placeholderevent),
                         modifier = Modifier
-                            .padding(16.dp)
+                            .padding(bottom = 16.dp)
                             .size(180.dp),
                         contentScale = ContentScale.FillHeight
                     )
@@ -260,7 +260,7 @@ fun EventDetailView(
                                 modifier = Modifier.size(25.dp)
                             )
                             Text(
-                                text = "mehr Infos",
+                                text = "mehr Infos & Tickets",
                                 color = Color(0xFF64B5F6),
                                 fontSize = 20.sp,
                                 fontWeight = FontWeight.Bold,
