@@ -18,6 +18,7 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.AccessTime
 import androidx.compose.material.icons.outlined.CalendarToday
 import androidx.compose.material.icons.outlined.Euro
+import androidx.compose.material.icons.outlined.Link // IMPORTIERT FÜR DAS LINK-ICON
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.StarOutline
 import androidx.compose.material.icons.rounded.ArrowBackIosNew
@@ -30,12 +31,15 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip // IMPORTIERT FÜR SAUBEREN RIPPLE-EFFEKT
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalUriHandler // IMPORTIERT FÜR DEN BROWSER-AUFRUF
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration // IMPORTIERT FÜR DIE UNTERSTREICHUNG
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
@@ -53,6 +57,9 @@ fun HistoryDetailScreen(
     viewModel: PartyHistoryViewModel,
     onBack: () -> Unit
 ) {
+    // UriHandler holen, um Links im Browser zu öffnen
+    val uriHandler = LocalUriHandler.current
+
     // Event aus dem StateFlow der besuchten Events laden
     val visitedEvents by viewModel.visitedEvents.collectAsState()
     val item = visitedEvents.find { it.event.eventId == eventId }
@@ -160,6 +167,35 @@ fun HistoryDetailScreen(
                             modifier = Modifier.padding(horizontal = 8.dp)
                         )
                     }
+
+                    // -------- LINK / MEHR INFOS --------
+                    if (!event.eventId.isNullOrBlank()) {
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(8.dp)
+                                .clip(RoundedCornerShape(4.dp))
+                                .clickable {
+                                    uriHandler.openUri(event.eventId.trim())
+                                },
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Link,
+                                contentDescription = "Link Icon",
+                                tint = Color(0xFF64B5F6),
+                                modifier = Modifier.size(25.dp)
+                            )
+                            Text(
+                                text = "mehr Infos",
+                                color = Color(0xFF64B5F6),
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Bold,
+                                textDecoration = TextDecoration.Underline,
+                                modifier = Modifier.padding(horizontal = 8.dp)
+                            )
+                        }
+                    }
                 }
             }
 
@@ -181,16 +217,14 @@ fun HistoryDetailScreen(
                         modifier = Modifier.padding(top = 8.dp),
                         horizontalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        // 5 Sterne-Icons; ausgefüllter Stern wenn Rating >= i
                         (1..5).forEach { starIndex ->
                             val isFilled = (event.rating ?: 0) >= starIndex
                             Icon(
                                 imageVector = if (isFilled) Icons.Filled.Star else Icons.Outlined.StarOutline,
                                 contentDescription = "$starIndex Stern",
-                                tint = if (isFilled) Color(0xFFFFD700) else Color.Gray, // Gold / Grau
+                                tint = if (isFilled) Color(0xFFFFD700) else Color.Gray,
                                 modifier = Modifier
                                     .size(40.dp)
-                                    // Tipp auf einen Stern speichert die Bewertung
                                     .clickable { viewModel.updateRating(event.eventId, starIndex) }
                             )
                         }
@@ -199,7 +233,6 @@ fun HistoryDetailScreen(
             }
 
             // -------- Lineup mit Like-Funktion --------
-            // Bereits gelikte Artists (aus Favoriten-Detail) erscheinen hier ebenfalls markiert
             item {
                 Column(modifier = Modifier.padding(8.dp)) {
                     Text(
@@ -229,7 +262,6 @@ fun HistoryDetailScreen(
                                         color = borderColor,
                                         shape = RoundedCornerShape(10.dp)
                                     )
-                                    // Tipp auf Artist-Chip toggled den Like-Status
                                     .clickable {
                                         viewModel.toggleArtistLike(artist.artistId, artist.iLike)
                                     }
@@ -240,7 +272,6 @@ fun HistoryDetailScreen(
                                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                                 ) {
                                     Text(artist.name)
-                                    // Herz-Icon erscheint nur für gelikte Artists
                                     if (artist.iLike) {
                                         Icon(
                                             imageVector = Icons.Filled.Favorite,

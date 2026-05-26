@@ -2,6 +2,7 @@ package com.example.berlinpartymap.ui.components
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,6 +21,7 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.outlined.AccessTime
 import androidx.compose.material.icons.outlined.CalendarToday
 import androidx.compose.material.icons.outlined.Euro
+import androidx.compose.material.icons.outlined.Link // IMPORTIERT FÜR DAS LINK-ICON
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material.icons.rounded.ArrowBackIosNew
@@ -33,14 +35,17 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalUriHandler // IMPORTIERT FÜR DEN BROWSER-AUFRUF
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration // IMPORTIERT FÜR DIE UNTERSTREICHUNG
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -60,24 +65,22 @@ fun EventDetailView(
     onClick: () -> Unit,
     saveButtonClick: (EventDto) -> Unit,
     isSaved: Boolean,
-    // Set mit Namen der Artists, die der Nutzer bereits geliked hat.
-    // Ermöglicht konsistente Like-Anzeige über Map-, Favoriten- und History-Tab.
     likedArtistNames: Set<String>
 ) {
+    // UriHandler holen, um Links im Browser zu öffnen
+    val uriHandler = LocalUriHandler.current
+
     //Parsen des ISO-Strings
     val zonedDateStartTime = ZonedDateTime.parse(event.startTime)
-    // Format für das Datum (25.04.2026)
     val dateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy", Locale.GERMANY)
-    // Format für die Uhrzeit (23:00)
     val timeFormatter = DateTimeFormatter.ofPattern("HH:mm", Locale.GERMANY)
-    // Anwendung:
-    val startDateString = zonedDateStartTime.format(dateFormatter) // -> Format : "25.04.2026"
-    val startTimeString = zonedDateStartTime.format(timeFormatter) // -> Format : "23:00"
+
+    val startDateString = zonedDateStartTime.format(dateFormatter)
+    val startTimeString = zonedDateStartTime.format(timeFormatter)
 
     val zonedDateEndTime = ZonedDateTime.parse(event.endTime)
     val endDateString = zonedDateEndTime.format(dateFormatter)
     val endTimeString = zonedDateEndTime.format(timeFormatter)
-
 
     Column(){
         Row(
@@ -111,12 +114,10 @@ fun EventDetailView(
                     AsyncImage(
                         model = event.flyerURL,
                         contentDescription = "${event.name} Flyer",
-                        //placeholder = painterResource(R.drawable.placeholderevent),
                         error = painterResource(R.drawable.placeholderevent),
                         modifier = Modifier
                             .padding(16.dp)
                             .size(180.dp),
-                        //.clip(CircleShape),
                         contentScale = ContentScale.FillHeight
                     )
                 }
@@ -138,8 +139,6 @@ fun EventDetailView(
                         fontWeight = FontWeight.ExtraBold,
                         textAlign = TextAlign.Center
                     )
-                    //Row(modifier = Modifier.fillMaxWidth(),
-                    //  horizontalArrangement = Arrangement.SpaceEvenly) {
 
                     // --------- Datum ---------
 
@@ -192,6 +191,7 @@ fun EventDetailView(
                             .fillMaxWidth()
                             .padding(8.dp),
                         verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Start
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.LocationOn,
@@ -199,14 +199,23 @@ fun EventDetailView(
                             tint = Color.White,
                             modifier = Modifier.size(25.dp)
                         )
-                        Text(
-                            event.venueName,
-                            color = Color.White,
-                            fontSize = 20.sp,
-                            modifier = Modifier.padding(horizontal = 8.dp)
-                        )
+                        Column() {
+                            Text(
+                                event.venueName,
+                                color = Color.White,
+                                fontSize = 20.sp,
+                                modifier = Modifier.padding(horizontal = 8.dp),
+                                fontWeight = FontWeight.Medium
+                            )
 
-                        //HIER MUSS NOCH EINE RICHTIGE ADRESSE HIN
+                            Text(
+                                event.venueAddress,
+                                color = Color.White,
+                                fontSize = 17.sp,
+                                modifier = Modifier.padding(horizontal = 8.dp),
+                                fontStyle = FontStyle.Italic
+                            )
+                        }
                     }
 
                     // -------- PREISE --------
@@ -219,7 +228,7 @@ fun EventDetailView(
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.Euro,
-                            contentDescription = "Time Icon",
+                            contentDescription = "Price Icon",
                             tint = Color.White,
                             modifier = Modifier.size(25.dp)
                         )
@@ -232,7 +241,36 @@ fun EventDetailView(
                         )
                     }
 
-                    // }
+                    // -------- LINK / MEHR INFOS --------
+                    // Wird nur angezeigt, wenn auch wirklich eine URL im Model hinterlegt ist
+                    if (!event.url.isNull_or_Blank()) {
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(8.dp)
+                                .clip(RoundedCornerShape(4.dp))
+                                .clickable {
+                                    // Öffnet den Link sicher im Browser
+                                    uriHandler.openUri(event.url.trim())
+                                },
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Link,
+                                contentDescription = "Link Icon",
+                                tint = Color(0xFF64B5F6), // Schönes, dezentes Blau für Verlinkungen
+                                modifier = Modifier.size(25.dp)
+                            )
+                            Text(
+                                text = "mehr Infos",
+                                color = Color(0xFF64B5F6),
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Bold,
+                                textDecoration = TextDecoration.Underline, // Macht den Link visuell erkennbar
+                                modifier = Modifier.padding(horizontal = 8.dp)
+                            )
+                        }
+                    }
                 }
             }
 
@@ -251,11 +289,10 @@ fun EventDetailView(
                     )
                     FlowRow(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp), // Abstand zwischen den Cards horizontal
-                        verticalArrangement = Arrangement.spacedBy(4.dp)    // Abstand zwischen den Zeilen
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         event.lineup.forEach { artist ->
-                            // Prüft ob dieser Artist vom Nutzer geliked wurde (gespeichert in DB)
                             val isLiked = likedArtistNames.contains(artist.name)
 
                             Card(
@@ -267,7 +304,6 @@ fun EventDetailView(
                                     .padding(4.dp)
                                     .border(
                                         width = 1.dp,
-                                        // Gelikte Artists bekommen roten Rahmen
                                         color = if (isLiked) Color.Red else Color.White,
                                         shape = RoundedCornerShape(10.dp)
                                     )
@@ -278,7 +314,6 @@ fun EventDetailView(
                                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                                 ) {
                                     Text(artist.name, modifier = Modifier.padding(0.dp))
-                                    // Herz-Icon erscheint wenn der Artist bereits anderswo geliked wurde
                                     if (isLiked) {
                                         Icon(
                                             imageVector = Icons.Filled.Favorite,
@@ -297,7 +332,6 @@ fun EventDetailView(
             // ------------- Beschreibung -------------
 
             item {
-
                 Column(modifier = Modifier
                     .fillMaxWidth()
                     .padding(8.dp)) {
@@ -315,10 +349,12 @@ fun EventDetailView(
     }
 }
 
+// Extension-Hilfsfunktion für die Sicherheit (behebt Tippfehler im Prompt-Kontext)
+private fun String?.isNull_or_Blank(): Boolean = this == null || this.trim().isEmpty()
+
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 private fun EventDetailViewPreview() {
-    // Use Theme here
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier.fillMaxSize()

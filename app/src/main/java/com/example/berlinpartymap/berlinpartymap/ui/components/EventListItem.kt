@@ -1,19 +1,23 @@
 package com.example.berlinpartymap.ui.components
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.Button
+import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -34,27 +38,19 @@ import kotlin.math.roundToInt
 fun EventListItem(
     modifier: Modifier = Modifier,
     event: EventDto,
+    likedArtistsCount: Int = 0, // NEU: Parameter für die Anzahl gelikter Künstler
     onClick: () -> Unit,
 ) {
-
     val zonedDateStartTime = ZonedDateTime.parse(event.startTime)
-    // Format für das Datum (25.04.2026)
     val dateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy", Locale.GERMANY)
-    // Format für die Uhrzeit (23:00)
     val timeFormatter = DateTimeFormatter.ofPattern("HH:mm", Locale.GERMANY)
-    // Anwendung:
-    val startDateString = zonedDateStartTime.format(dateFormatter) // -> Format : "25.04.2026"
-    val startTimeString = zonedDateStartTime.format(timeFormatter) // -> Format : "23:00"
 
-    val zonedDateEndTime = ZonedDateTime.parse(event.endTime)
-    val endDateString = zonedDateEndTime.format(dateFormatter)
-    val endTimeString = zonedDateEndTime.format(timeFormatter)
+    val startDateString = zonedDateStartTime.format(dateFormatter)
+    val startTimeString = zonedDateStartTime.format(timeFormatter)
 
     Card(
         onClick = onClick,
-        modifier = Modifier
-            //.padding(start = 16.dp, end = 16.dp, top = 8.dp)
-            .fillMaxWidth(1f),
+        modifier = modifier.fillMaxWidth(), // Modifier von außen erlauben
         colors = CardDefaults.cardColors(
             containerColor = Color.LightGray.copy(0.3f),
             contentColor = Color.White
@@ -62,37 +58,59 @@ fun EventListItem(
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically
-        ){
+        ) {
             AsyncImage(
                 model = event.flyerURL,
                 contentDescription = "${event.name} Flyer",
-                //placeholder = painterResource(R.drawable.placeholderevent),
                 error = painterResource(R.drawable.placeholderevent),
                 modifier = Modifier
                     .padding(16.dp)
                     .size(60.dp),
-                    //.clip(CircleShape),
                 contentScale = ContentScale.FillHeight
             )
             Column(
-                modifier = Modifier.padding(8.dp)
+                modifier = Modifier.padding(8.dp).weight(1f)
             ) {
                 Text(event.venueName, fontWeight = FontWeight.Bold)
                 Text(event.name)
+
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    //horizontalArrangement = Arrangement.SpaceBetween
-                ){
+                    modifier = Modifier,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Text(startDateString, fontWeight = FontWeight.Bold)
                     Text(" | $startTimeString Uhr | ", fontWeight = FontWeight.Bold)
                     Text(
-                        if(event.price != 0.0) "${event.price.roundToInt()}€" else "free",
+                        if (event.price != 0.0) "${event.price.roundToInt()}€" else "free",
                         fontWeight = FontWeight.Bold,
                         fontStyle = FontStyle.Italic
                     )
+
+                }
+
+            }
+            // NEU: Wenn gelikte Artists im Lineup sind, zeigen wir ein kleines Badge/Icon an
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier.padding(4.dp)
+            ){
+                if (likedArtistsCount > 0) {
+                    //Spacer(modifier = Modifier.width(12.dp))
+                    Icon(
+                        imageVector = Icons.Filled.Favorite,
+                        contentDescription = "Gelikter Artist",
+                        tint = Color(0xFFE91E63), // Schönes Pink/Rot für das Herz
+                        modifier = Modifier.size(28.dp)
+                    )
+                    //Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "$likedArtistsCount",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
                 }
             }
-
         }
     }
 }
@@ -100,7 +118,6 @@ fun EventListItem(
 @Preview(showBackground = true)
 @Composable
 private fun EventListItemPreview() {
-    // Use Theme here
     EventListItem(
         event = EventDto(
             name = "Party Berlin",
@@ -109,15 +126,14 @@ private fun EventListItemPreview() {
             longitude = 13.4482,
             startTime = "2026-04-24T16:00:00+02:00",
             endTime = "2026-04-25T08:00:00+02:00",
-            lineup = listOf(
-                ArtistDto("CRYME")
-            ),
+            lineup = listOf(ArtistDto("CRYME")),
             description = "description",
             url = "https://de.ra.co/events/2385678",
-            flyerURL = "https://imgproxy.ra.co/_/quality:66/aHR0cHM6Ly9pbWFnZXMucmEuY28vZDQ1MDE5YzQwYWQyNGY0YjU0YmU3YWY3NGQzYzAyYThmNGVjYzU0ZC5qcGc=",
+            flyerURL = "",
             venueAddress = "Clubstraße 123",
             price = 25.0
         ),
+        likedArtistsCount = 3, // In der Preview testen
         onClick = {}
     )
 }

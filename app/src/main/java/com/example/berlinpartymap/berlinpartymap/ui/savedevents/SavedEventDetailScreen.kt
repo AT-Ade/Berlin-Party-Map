@@ -20,6 +20,7 @@ import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.outlined.AccessTime
 import androidx.compose.material.icons.outlined.CalendarToday
 import androidx.compose.material.icons.outlined.Euro
+import androidx.compose.material.icons.outlined.Link // IMPORTIERT FÜR DAS LINK-ICON
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.rounded.ArrowBackIosNew
 import androidx.compose.material.icons.rounded.Star
@@ -33,12 +34,15 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip // IMPORTIERT FÜR SAUBEREN RIPPLE-EFFEKT
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalUriHandler // IMPORTIERT FÜR DEN BROWSER-AUFRUF
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration // IMPORTIERT FÜR DIE UNTERSTREICHUNG
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
@@ -56,6 +60,9 @@ fun SavedEventDetailScreen(
     viewModel: SavedEventsViewModel,
     onBack: () -> Unit
 ) {
+    // UriHandler holen, um Links im Browser zu öffnen
+    val uriHandler = LocalUriHandler.current
+
     // Event aus dem StateFlow des ViewModels laden
     val savedEvents by viewModel.savedEvents.collectAsState()
     val item = savedEvents.find { it.event.eventId == eventId }
@@ -179,6 +186,35 @@ fun SavedEventDetailScreen(
                             modifier = Modifier.padding(horizontal = 8.dp)
                         )
                     }
+
+                    // -------- LINK / MEHR INFOS --------
+                    if (!event.eventId.isNullOrBlank()) {
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(8.dp)
+                                .clip(RoundedCornerShape(4.dp))
+                                .clickable {
+                                    uriHandler.openUri(event.eventId.trim())
+                                },
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Link,
+                                contentDescription = "Link Icon",
+                                tint = Color(0xFF64B5F6),
+                                modifier = Modifier.size(25.dp)
+                            )
+                            Text(
+                                text = "mehr Infos",
+                                color = Color(0xFF64B5F6),
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Bold,
+                                textDecoration = TextDecoration.Underline,
+                                modifier = Modifier.padding(horizontal = 8.dp)
+                            )
+                        }
+                    }
                 }
             }
 
@@ -198,7 +234,6 @@ fun SavedEventDetailScreen(
                         verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         lineup.forEach { artist ->
-                            // Gelikte Artists bekommen roten Rahmen und Herz-Icon
                             val borderColor = if (artist.iLike) Color.Red else Color.White
 
                             Card(
@@ -213,10 +248,6 @@ fun SavedEventDetailScreen(
                                         color = borderColor,
                                         shape = RoundedCornerShape(10.dp)
                                     )
-                                    // Tipp auf den Artist-Chip toggled den Like-Status
-//                                    .clickable {
-//                                        viewModel.toggleArtistLike(artist.artistId, artist.iLike)
-//                                    }
                             ) {
                                 Row(
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
@@ -224,7 +255,6 @@ fun SavedEventDetailScreen(
                                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                                 ) {
                                     Text(artist.name)
-                                    // Herz-Icon erscheint nur, wenn der Artist geliked wurde
                                     if (artist.iLike) {
                                         Icon(
                                             imageVector = Icons.Filled.Favorite,

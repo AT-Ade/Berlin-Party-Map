@@ -1,5 +1,7 @@
 package com.example.berlinpartymap.ui.map
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -11,7 +13,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
@@ -19,50 +25,65 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.example.berlinpartymap.R
 import com.example.berlinpartymap.data.remote.dto.EventDto
 import com.example.berlinpartymap.ui.components.CustomMapInfoWindow
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import org.maplibre.compose.camera.CameraState
+import org.maplibre.compose.expressions.dsl.Feature.get
+import org.maplibre.compose.expressions.dsl.asString
+import org.maplibre.compose.expressions.dsl.case
 import org.maplibre.compose.expressions.dsl.const
 import org.maplibre.compose.expressions.dsl.image
+import org.maplibre.compose.expressions.dsl.switch
 import org.maplibre.compose.layers.SymbolLayer
 import org.maplibre.compose.map.MaplibreMap
 import org.maplibre.compose.sources.GeoJsonData
 import org.maplibre.compose.sources.rememberGeoJsonSource
 import org.maplibre.compose.style.BaseStyle
 import org.maplibre.compose.util.ClickResult
+import com.example.berlinpartymap.R
 import org.maplibre.spatialk.geojson.*
 
 @Composable
 fun MapContainer(
     cameraState: CameraState,
-    highlightedEvent: EventDto?,
+    highlightedEvent: EventDto?, // Steuert nur noch das Info-Window oben
+    selectedEvent: EventDto?,    // NEU: Steuert jetzt die Pin-Farbe und Animation!
     onCloseInfo: () -> Unit,
     mapHeight: Dp,
     elevation: Dp,
     mapListToggle: Boolean,
     onToggle: () -> Unit,
     locations: List<Feature<Point, JsonObject>>,
-    onMarkerClick: (String) -> Unit   // gibt die Event-ID (url) zurück
+    onMarkerClick: (String) -> Unit,
+    isSaved: Boolean,                    // <-- NEU HIER
+    likedArtistNames: Set<String>,
+    onDetailClick: () -> Unit
 ) {
-    // FIX ANR #1 – Stabile GeoJSON-Source:
-    // Vorher wurde bei jeder Recomposition `FeatureCollection(locations)` als neues
-    // Objekt übergeben. Da `animateDpAsState` für mapHeight/listHeight bei jedem
-    // Animations-Frame eine Recomposition auslöst (bis zu 60×/Sek.), hat MapLibre
-    // die Karte bei jedem Frame komplett neu geladen → Endlosschleife + ANR.
-    // `remember(locations)` cacht das Objekt und erstellt es nur neu, wenn sich
-    // die tatsächlichen Event-Daten ändern.
     val featureCollection = remember(locations) {
         FeatureCollection(locations)
     }
 
-    // FIX ANR #2 – Gecachtes Marker-Icon:
-    // `painterResource()` wurde vorher innerhalb des MapLibre-Scopes bei jeder
-    // Recomposition aufgerufen, was wiederholtes Dekodieren der Ressource verursacht hat.
-    // Außerhalb platziert wird der Painter einmal erstellt und danach wiederverwendet.
-    val markerPainter = painterResource(R.drawable.markerwhite)
+    val whiteMarkerPainter = painterResource(R.drawable.markerwhite)
+    val goldMarkerPainter = painterResource(R.drawable.markergold)
+
+    val whiteIcon = image(whiteMarkerPainter)
+    val goldIcon = image(goldMarkerPainter)
+
+    // Die Pin-Animation reagiert jetzt vollkommen autark auf das 'selectedEvent'!
+    var animatedEventId by remember { mutableStateOf("") }
+    val animatedScale = remember { Animatable(1.0f) }
+
+    LaunchedEffect(selectedEvent) {
+        if (selectedEvent != null) {
+            animatedEventId = selectedEvent.url
+            animatedScale.animateTo(1.4f, animationSpec = tween(250))
+        } else {
+            animatedScale.animateTo(1.0f, animationSpec = tween(250))
+            animatedEventId = ""
+        }
+    }
 
     Box {
         Card(
@@ -76,10 +97,12 @@ fun MapContainer(
             MaplibreMap(
                 modifier = Modifier.fillMaxSize(),
                 cameraState = cameraState,
-                baseStyle = BaseStyle.Uri("https://tiles.openfreemap.org/styles/dark")
+                baseStyle = BaseStyle.Uri("https://tiles.openfreemap.org/styles/dark"),
+                onMapClick = { _, _ ->
+                    onCloseInfo() // Schließt bei Klick ins Leere NUR die Infobox (Selection bleibt!)
+                    ClickResult.Pass
+                }
             ) {
-                // Stabiles Objekt übergeben – MapLibre lädt die Source nur neu
-                // wenn sich der Inhalt tatsächlich geändert hat.
                 val source = rememberGeoJsonSource(
                     data = GeoJsonData.Features(featureCollection)
                 )
@@ -87,8 +110,19 @@ fun MapContainer(
                 SymbolLayer(
                     id = "event-markers",
                     source = source,
-                    iconImage = image(markerPainter),
-                    iconSize = const(1f),
+
+                    iconImage = switch(
+                        get("id").asString(),
+                        case(animatedEventId, goldIcon),
+                        fallback = whiteIcon
+                    ),
+
+                    iconSize = switch(
+                        get("id").asString(),
+                        case(animatedEventId, const(animatedScale.value)),
+                        fallback = const(1.0f)
+                    ),
+
                     iconAllowOverlap = const(true),
                     iconIgnorePlacement = const(true),
                     onClick = { clickedFeatures: List<Feature<Geometry, JsonObject?>> ->
@@ -110,7 +144,7 @@ fun MapContainer(
             }
         }
 
-        // Info-Popup wenn ein Event hervorgehoben ist
+        // Das Info-Window reagiert weiterhin brav auf den highlighted-Zustand
         if (highlightedEvent != null) {
             CustomMapInfoWindow(
                 event = highlightedEvent,
@@ -118,11 +152,13 @@ fun MapContainer(
                 modifier = Modifier
                     .align(Alignment.Center)
                     .padding(top = 48.dp)
-                    .offset(y = -105.dp)
+                    .offset(y = -120.dp),
+                isSaved = isSaved,
+                likedArtistNames = likedArtistNames,
+                onClick = onDetailClick
             )
         }
 
-        // Overlay-Karte verhindert Interaktion wenn die Liste vorne ist
         if (!mapListToggle) {
             Card(
                 modifier = Modifier.matchParentSize(),

@@ -133,13 +133,24 @@ fun MapScreen(
                 mapHeight = mapHeight,
                 elevation = mapElevation,
                 mapListToggle = mapListToggle,
-                onToggle = { mapListToggle = !mapListToggle },
+                onToggle = {
+                    mapListToggle = !mapListToggle
+                           eventViewModel.clearHighlight()
+                           },
                 locations = eventFeatures,
+                selectedEvent = selectedEvent,
+                isSaved = isCurrentEventSaved,
+                likedArtistNames = likedArtistNames,
+                onDetailClick = {
+                    mapListToggle = !mapListToggle
+                    eventViewModel.clearHighlight()
+                },
                 onMarkerClick = { eventId ->
                     // Event anhand der ID (url) suchen
                     val event = eventViewModel.findEventById(eventId)
                     if (event != null) {
                         eventViewModel.highlightEvent(event)
+                        eventViewModel.selectEvent(event)
                         // Kamera sofort setzen (ohne clearHighlight zu triggern)
                         coroutineScope.launch {
                             cameraState.animateTo(
@@ -161,7 +172,10 @@ fun MapScreen(
                 listHeight = listHeight,
                 elevation = listElevation,
                 mapListToggle = mapListToggle,
-                onToggle = { mapListToggle = !mapListToggle },
+                onToggle = {
+                    mapListToggle = !mapListToggle
+                    eventViewModel.clearHighlight()
+                },
                 onEventClick = { event ->
                     eventViewModel.selectEvent(event)
 
