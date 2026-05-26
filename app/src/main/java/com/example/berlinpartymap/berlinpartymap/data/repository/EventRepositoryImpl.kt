@@ -14,8 +14,13 @@ class EventRepositoryImpl(
 ) : EventRepository {
 
     // ---------------- API Functions ----------------
-    override suspend fun getEvents(): List<EventDto> {
-            return api.getEvents()//.map { it.toDomain() }
+//    override suspend fun getEvents(): List<EventDto> {
+//            return api.getEvents()//.map { it.toDomain() }
+//    }
+
+    // Passe die Implementierung an:
+    override suspend fun getEvents(dateString: String): List<EventDto> {
+        return api.getEvents(dateString) // Reicht das Datum an die API weiter
     }
 
 

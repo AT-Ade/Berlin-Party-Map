@@ -82,7 +82,7 @@ fun EventInfoBlock(
             Text(
                 event.name,
                 color = Color.LightGray,
-                fontSize = 15.sp,
+                fontSize = 16.sp,
                 fontWeight = FontWeight.ExtraBold,
                 textAlign = TextAlign.Center,
                 maxLines = 2,

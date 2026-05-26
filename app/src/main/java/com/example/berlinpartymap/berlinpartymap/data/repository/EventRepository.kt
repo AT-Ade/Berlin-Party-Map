@@ -11,8 +11,11 @@ import kotlinx.coroutines.flow.Flow
 interface EventRepository{
     // --------------------  REST API calls -------------------
 
-    suspend fun getEvents(): List<EventDto>
+    // alle events
+    //suspend fun getEvents(): List<EventDto>
 
+    // Events nach Datum:
+    suspend fun getEvents(dateString: String): List<EventDto>
 
     // -------------------- DAO queries --------------------
 

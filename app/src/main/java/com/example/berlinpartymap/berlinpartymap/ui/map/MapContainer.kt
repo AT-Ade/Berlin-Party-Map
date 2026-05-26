@@ -1,17 +1,29 @@
 package com.example.berlinpartymap.ui.map
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.KeyboardDoubleArrowDown
+import androidx.compose.material.icons.rounded.KeyboardDoubleArrowUp
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -20,7 +32,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.Dp
@@ -47,11 +61,12 @@ import org.maplibre.spatialk.geojson.*
 
 @Composable
 fun MapContainer(
+    modifier: Modifier = Modifier,
     cameraState: CameraState,
     highlightedEvent: EventDto?, // Steuert nur noch das Info-Window oben
     selectedEvent: EventDto?,    // NEU: Steuert jetzt die Pin-Farbe und Animation!
     onCloseInfo: () -> Unit,
-    mapHeight: Dp,
+    //mapHeight: Dp,
     elevation: Dp,
     mapListToggle: Boolean,
     onToggle: () -> Unit,
@@ -78,19 +93,18 @@ fun MapContainer(
     LaunchedEffect(selectedEvent) {
         if (selectedEvent != null) {
             animatedEventId = selectedEvent.url
-            animatedScale.animateTo(1.4f, animationSpec = tween(250))
+            animatedScale.animateTo(1.25f, animationSpec = tween(250))
         } else {
             animatedScale.animateTo(1.0f, animationSpec = tween(250))
             animatedEventId = ""
         }
     }
 
-    Box {
+    Box (modifier = modifier){
         Card(
             modifier = Modifier
-                .padding(top = 32.dp, bottom = 8.dp, start = 8.dp, end = 8.dp)
-                .fillMaxWidth()
-                .height(mapHeight)
+                .padding(bottom = 4.dp, start = 8.dp, end = 8.dp)
+                .fillMaxSize() // Nutze hier fillMaxSize statt fillMaxWidth + height!
                 .shadow(elevation, RoundedCornerShape(10.dp)),
             border = BorderStroke(1.dp, Color.White)
         ) {
@@ -152,19 +166,61 @@ fun MapContainer(
                 modifier = Modifier
                     .align(Alignment.Center)
                     .padding(top = 48.dp)
-                    .offset(y = -120.dp),
+                    .offset(y = -130.dp),
                 isSaved = isSaved,
                 likedArtistNames = likedArtistNames,
                 onClick = onDetailClick
             )
         }
 
-        if (!mapListToggle) {
+        // JETZT MIT ANIMATION: Ersetzt das nackte "if (!mapListToggle)"
+        // 1. matchParentSize wandert HIERHIN, damit die Animation weiß, wie groß sie sein darf
+        AnimatedVisibility(
+            visible = !mapListToggle,
+            enter = fadeIn(animationSpec = tween(300)),
+            exit = fadeOut(animationSpec = tween(300)),
+            modifier = Modifier.matchParentSize()
+        ) {
             Card(
-                modifier = Modifier.matchParentSize(),
+                shape = RoundedCornerShape(15.dp),
+                modifier = Modifier
+                    // 2. Die Card füllt nun einfach die exakte Größe der AnimatedVisibility aus
+                    .fillMaxSize()
+                    .padding(start = 8.dp, end = 8.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(
+                        brush = Brush.verticalGradient(
+                            colors = if (selectedEvent == null) listOf(Color.White, Color.Transparent, Color.Transparent)
+                            else listOf(Color.Transparent, Color.Transparent)
+                        ),
+                        shape = RoundedCornerShape(10.dp)
+                    ),
                 colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-                onClick = onToggle
-            ) {}
+                onClick = onToggle,
+            ) {
+                if (selectedEvent == null) {
+                    Box(
+                        Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Top,
+                            modifier = Modifier.padding(top = 32.dp).fillMaxHeight()
+                        ) {
+                            Text(
+                                "Karte vergrößern",
+                                color = Color.Black
+                            )
+                            Icon(
+                                imageVector = Icons.Rounded.KeyboardDoubleArrowDown,
+                                contentDescription = "Downwards arrows",
+                                tint = Color.Black
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }

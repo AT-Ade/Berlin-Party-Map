@@ -75,7 +75,8 @@ fun CustomMapInfoWindow(
         ) {
             Column(
                 modifier = Modifier.height(180.dp).padding(8.dp),
-                verticalArrangement = Arrangement.SpaceEvenly
+                verticalArrangement = Arrangement.SpaceEvenly,
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 // Erste Zeile: Location-Name & Favoriten-Stern (gefüllt/gold oder leer/grau)
                 Row(
@@ -104,7 +105,7 @@ fun CustomMapInfoWindow(
                 // Zweite Zeile: Event-Name
                 Text(
                     text = event.name,
-                    fontSize = 13.sp,
+                    fontSize = 15.sp,
                     fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
                     color = Color.DarkGray,
                     maxLines = 2,

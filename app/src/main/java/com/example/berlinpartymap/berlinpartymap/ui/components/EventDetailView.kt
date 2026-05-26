@@ -1,51 +1,40 @@
 package com.example.berlinpartymap.ui.components
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccessTimeFilled
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.outlined.AccessTime
 import androidx.compose.material.icons.outlined.CalendarToday
 import androidx.compose.material.icons.outlined.Euro
-import androidx.compose.material.icons.outlined.Link // IMPORTIERT FÜR DAS LINK-ICON
+import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.LocationOn
-import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material.icons.rounded.ArrowBackIosNew
 import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material.icons.twotone.Star
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalUriHandler // IMPORTIERT FÜR DEN BROWSER-AUFRUF
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextDecoration // IMPORTIERT FÜR DIE UNTERSTREICHUNG
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -67,8 +56,22 @@ fun EventDetailView(
     isSaved: Boolean,
     likedArtistNames: Set<String>
 ) {
-    // UriHandler holen, um Links im Browser zu öffnen
     val uriHandler = LocalUriHandler.current
+
+    // -------- ANIMATIONS LOGIK FOR THE FAVORITE BUTTON --------
+    // Bestimmt die Ziel-Rotation: 360 Grad wenn favorisiert, 0 Grad wenn un-favorisiert
+    val rotationTarget = if (isSaved) 360f else 0f
+    val rotation by animateFloatAsState(
+        targetValue = rotationTarget,
+        // 350ms ist die perfekte "Snappy"-Länge für eine spürbare, aber kurze Drehung
+        animationSpec = tween(durationMillis = 350)
+    )
+
+    // Flüssiger Farbwechsel zum Club-Gelb (0xFFFFD700) oder zurück zu Weiß
+    val animatedStarColor by animateColorAsState(
+        targetValue = if (isSaved) Color(0xFFFFD700) else Color.White,
+        animationSpec = tween(durationMillis = 250)
+    )
 
     //Parsen des ISO-Strings
     val zonedDateStartTime = ZonedDateTime.parse(event.startTime)
@@ -82,7 +85,7 @@ fun EventDetailView(
     val endDateString = zonedDateEndTime.format(dateFormatter)
     val endTimeString = zonedDateEndTime.format(timeFormatter)
 
-    Column(){
+    Column(modifier = modifier){
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -96,10 +99,12 @@ fun EventDetailView(
                 iconColor = Color.White
             )
 
+            // Hier übergeben wir den Rotations-Modifier direkt an das Icon via StyledIconButton
             StyledIconButton(
                 onClick = { saveButtonClick(event) },
                 icon = if (isSaved) Icons.Rounded.Star else Icons.TwoTone.Star,
-                iconColor = if (isSaved) Color.Green else Color.White
+                iconColor = animatedStarColor, // Nutzen der animierten Farbe
+                modifier = Modifier.rotate(rotation) // Nutzen des Drehungswinkels
             )
         }
         LazyColumn(
@@ -131,7 +136,6 @@ fun EventDetailView(
                 ) {
 
                     // --------- Titel ---------
-
                     Text(
                         event.name,
                         color = Color.LightGray,
@@ -141,7 +145,6 @@ fun EventDetailView(
                     )
 
                     // --------- Datum ---------
-
                     Row(
                         Modifier
                             .fillMaxWidth()
@@ -163,7 +166,6 @@ fun EventDetailView(
                     }
 
                     // --------- Uhrzeit ---------
-
                     Row(
                         Modifier
                             .fillMaxWidth()
@@ -185,7 +187,6 @@ fun EventDetailView(
                     }
 
                     // --------- Location ---------
-
                     Row(
                         Modifier
                             .fillMaxWidth()
@@ -219,7 +220,6 @@ fun EventDetailView(
                     }
 
                     // -------- PREISE --------
-
                     Row(
                         Modifier
                             .fillMaxWidth()
@@ -242,7 +242,6 @@ fun EventDetailView(
                     }
 
                     // -------- LINK / MEHR INFOS --------
-                    // Wird nur angezeigt, wenn auch wirklich eine URL im Model hinterlegt ist
                     if (!event.url.isNull_or_Blank()) {
                         Row(
                             Modifier
@@ -250,7 +249,6 @@ fun EventDetailView(
                                 .padding(8.dp)
                                 .clip(RoundedCornerShape(4.dp))
                                 .clickable {
-                                    // Öffnet den Link sicher im Browser
                                     uriHandler.openUri(event.url.trim())
                                 },
                             verticalAlignment = Alignment.CenterVertically,
@@ -258,7 +256,7 @@ fun EventDetailView(
                             Icon(
                                 imageVector = Icons.Outlined.Link,
                                 contentDescription = "Link Icon",
-                                tint = Color(0xFF64B5F6), // Schönes, dezentes Blau für Verlinkungen
+                                tint = Color(0xFF64B5F6),
                                 modifier = Modifier.size(25.dp)
                             )
                             Text(
@@ -266,7 +264,7 @@ fun EventDetailView(
                                 color = Color(0xFF64B5F6),
                                 fontSize = 20.sp,
                                 fontWeight = FontWeight.Bold,
-                                textDecoration = TextDecoration.Underline, // Macht den Link visuell erkennbar
+                                textDecoration = TextDecoration.Underline,
                                 modifier = Modifier.padding(horizontal = 8.dp)
                             )
                         }
@@ -275,7 +273,6 @@ fun EventDetailView(
             }
 
             // --------- LINEUP ---------
-
             item {
                 Column(
                     modifier = Modifier.padding(8.dp)
@@ -330,7 +327,6 @@ fun EventDetailView(
             }
 
             // ------------- Beschreibung -------------
-
             item {
                 Column(modifier = Modifier
                     .fillMaxWidth()
@@ -349,52 +345,4 @@ fun EventDetailView(
     }
 }
 
-// Extension-Hilfsfunktion für die Sicherheit (behebt Tippfehler im Prompt-Kontext)
 private fun String?.isNull_or_Blank(): Boolean = this == null || this.trim().isEmpty()
-
-@Preview(showBackground = true, showSystemUi = true)
-@Composable
-private fun EventDetailViewPreview() {
-    Box(
-        contentAlignment = Alignment.Center,
-        modifier = Modifier.fillMaxSize()
-    ) {
-        Card(
-            modifier = Modifier
-                .padding(horizontal = 16.dp)
-                .fillMaxWidth()
-                .height(600.dp)
-                .shadow(
-                    shape = RoundedCornerShape(10.dp),
-                    elevation = 20.dp,
-                    spotColor = Color.White,
-                    ambientColor = Color.White
-                ),
-            border = BorderStroke(width = 1.dp, color = Color.White),
-            colors = CardDefaults.cardColors(Color.Black.copy(0.97f))
-        ) {
-            EventDetailView(
-                event = EventDto(
-                    name = "WHALIEN pres. AREA ONE B2B Niotech (ALL NIGHT LONG) invites Doruksen, 3LEEZA + friends",
-                    venueName = "Club Berlin",
-                    latitude = 52.4837,
-                    longitude = 13.4482,
-                    startTime = "2026-04-24T16:00:00+02:00",
-                    endTime = "2026-04-25T08:00:00+02:00",
-                    lineup = listOf(
-                        ArtistDto("CRYME")
-                    ),
-                    description = "description",
-                    url = "https://de.ra.co/events/2385678",
-                    flyerURL = "https://imgproxy.ra.co/_/quality:66/aHR0cHM6Ly9pbWFnZXMucmEuY28vZDQ1MDE5YzQwYWQyNGY0YjU0YmU3YWY3NGQzYzAyYThmNGVjYzU0ZC5qcGc=",
-                    venueAddress = "Clubstraße 123",
-                    price = 25.0
-                ),
-                onClick = {},
-                saveButtonClick = {},
-                isSaved = true,
-                likedArtistNames = emptySet()
-            )
-        }
-    }
-}
