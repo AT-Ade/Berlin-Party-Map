@@ -7,67 +7,70 @@ import com.example.berlinpartymap.data.repository.EventRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-
-// 1. Definition der Sortier-Optionen für die gespeicherten Events
-enum class SavedEventsSortOrder {
-    DATE_ASC,            // Chronologisch (nächstes Event zuerst)
-    PRICE_ASC,           // Günstigste zuerst (Gratis/Keine Angabe unten)
-    PRICE_DESC,          // Teuerste zuerst (Gratis/Keine Angabe unten)
-    LIKED_ARTISTS_DESC   // Meiste gelikte Artists im Lineup zuerst
-}
+import java.time.ZonedDateTime
 
 class SavedEventsViewModel(
     private val repository: EventRepository
 ) : ViewModel() {
 
-    // 2. State für die aktuelle Sortierung (Standard: Nach Datum)
-    private val _currentSortOrder = MutableStateFlow(SavedEventsSortOrder.DATE_ASC)
-    val currentSortOrder: StateFlow<SavedEventsSortOrder> = _currentSortOrder
+    // Alle Events aus der DB als gemeinsame Basis für alle abgeleiteten Flows
+    private val allDbEvents: StateFlow<List<EventWithLineup>> = repository.getAllSavedEvents()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    // 3. Kombinieren des Datenbank-Flows mit unserem Sortier-Zustand
-    val savedEvents: StateFlow<List<EventWithLineup>> = repository.getAllSavedEvents()
-        .combine(_currentSortOrder) { eventList, sortOrder ->
-            when (sortOrder) {
-                // Nach Datum aufsteigend sortieren
-                SavedEventsSortOrder.DATE_ASC -> eventList.sortedBy { it.event.startTime }
+    // -----------------------------------------------------------------------
+    // Für den MapScreen: isSaved-Prüfung
+    // Ein Event gilt als "favorisiert" (Herz aktiv) wenn isFavorite = true.
+    // Events die nur wegen iWasThere=true in der DB sind zählen NICHT.
+    // -----------------------------------------------------------------------
+    val allSavedEventsIncludingHistory: StateFlow<List<EventWithLineup>> = allDbEvents
+        .map { list -> list.filter { it.event.isFavorite } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-                // Preis aufsteigend (Günstigste zuerst, unbewertet/null am Ende)
-                SavedEventsSortOrder.PRICE_ASC -> eventList.sortedWith(
-                    compareBy(nullsLast()) { it.event.price }
-                )
-
-                // Preis absteigend (Teuerste zuerst, unbewertet/null am Ende)
-                SavedEventsSortOrder.PRICE_DESC -> eventList.sortedWith(
-                    compareBy(nullsLast(reverseOrder())) { it.event.price }
-                )
-
-                // Meiste gelikte Artists zuerst
-                // Wir zählen, wie viele Artists im `lineup` das Flag `isLiked == true` haben
-                SavedEventsSortOrder.LIKED_ARTISTS_DESC -> eventList.sortedByDescending { item ->
-                    item.lineup.count { artist -> artist.iLike }
-                }
-            }
+    // -----------------------------------------------------------------------
+    // Für den SavedEventsScreen: Anstehende Favoriten (Zukunft, isFavorite=true)
+    // Zeigt Events die noch nicht stattgefunden haben.
+    // -----------------------------------------------------------------------
+    val activeSavedEvents: StateFlow<List<EventWithLineup>> = allDbEvents
+        .map { list ->
+            list.filter { it.event.isFavorite && !isInPast(it.event.endTime) }
         }
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = emptyList()
-        )
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    // 4. Setter für die UI
-    fun setSortOrder(newOrder: SavedEventsSortOrder) {
-        _currentSortOrder.value = newOrder
+    // savedEvents = Alias für activeSavedEvents (wird in SavedEventDetailScreen genutzt)
+    val savedEvents: StateFlow<List<EventWithLineup>> = activeSavedEvents
+
+    // -----------------------------------------------------------------------
+    // Für den SavedEventsScreen: Vergangene Favoriten (ausklappbarer Bereich)
+    //
+    // Zeigt Events die:
+    //   - isFavorite = true (der User hat sie bewusst gespeichert)
+    //   - in der Vergangenheit liegen (endTime vergangen)
+    //
+    // BEWUSST werden hier auch Events mit iWasThere=false angezeigt,
+    // weil der User sie weiterhin als Favorit behalten hat.
+    // Der "war ich da"-Status ist separat und stört hier nicht.
+    // -----------------------------------------------------------------------
+    val pastSavedEvents: StateFlow<List<EventWithLineup>> = allDbEvents
+        .map { list ->
+            list.filter { it.event.isFavorite && isInPast(it.event.endTime) }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    fun removeFavorite(eventId: String) {
+        viewModelScope.launch {
+            repository.removeEventFromFavorites(eventId)
+        }
     }
 
-    fun removeEventFromFavorites(eventId: String) {
-        viewModelScope.launch {
-            // Entweder löschst du es komplett oder setzt iWasThere / saved zurück,
-            // je nachdem wie deine Repository-Methode benannt ist:
-            repository.updateEventAttendance(eventId, iWasThere = false)
-            // ODER falls du ein direktes Löschen hast: repository.deleteSavedEvent(eventId)
+    // Hilfsfunktion: true wenn das Event-Ende in der Vergangenheit liegt
+    private fun isInPast(endTime: String): Boolean {
+        return try {
+            ZonedDateTime.parse(endTime).isBefore(ZonedDateTime.now())
+        } catch (e: Exception) {
+            false
         }
     }
 }

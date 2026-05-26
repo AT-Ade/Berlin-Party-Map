@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -168,7 +169,7 @@ fun PartyHistoryScreen(
         if (visitedEvents.isEmpty()) {
             Text(
                 text = "Noch keine besuchten Events.",
-                modifier = Modifier.padding(top = 16.dp),
+                modifier = Modifier.padding(top = 16.dp).weight(1f),
                 fontStyle = FontStyle.Italic
             )
         } else {
@@ -191,7 +192,7 @@ fun PartyHistoryScreen(
                 modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
             ) {
                 Text(
-                    "${pendingCount} gespeichertes Event vergangen. Warst du da?",
+                    (if (pendingCount == 1) "${pendingCount} gespeichertes Event" else "${pendingCount} gespeicherte Events") +" vergangen. Warst du da?",
                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                     style = MaterialTheme.typography.bodyMedium
                 )

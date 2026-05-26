@@ -1,92 +1,137 @@
 package com.example.berlinpartymap.ui.savedevents
 
-import androidx.compose.foundation.BorderStroke
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.outlined.AccessTime
-import androidx.compose.material.icons.outlined.CalendarToday
-import androidx.compose.material.icons.outlined.Euro
-import androidx.compose.material.icons.outlined.Link // IMPORTIERT FÜR DAS LINK-ICON
-import androidx.compose.material.icons.outlined.LocationOn
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material.icons.rounded.ArrowBackIosNew
 import androidx.compose.material.icons.rounded.Star
-import androidx.compose.material.icons.twotone.Star
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip // IMPORTIERT FÜR SAUBEREN RIPPLE-EFFEKT
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalUriHandler // IMPORTIERT FÜR DEN BROWSER-AUFRUF
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextDecoration // IMPORTIERT FÜR DIE UNTERSTREICHUNG
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.example.berlinpartymap.R
+import com.example.berlinpartymap.data.local.EventWithLineup
 import com.example.berlinpartymap.ui.components.StyledIconButton
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlin.math.roundToInt
 
-// Detail-Ansicht für ein gespeichertes (favorisiertes) Event
+// GEÄNDERT: Signatur angepasst – empfängt jetzt eventId: String statt EventWithLineup direkt.
+// Das ist analog zu HistoryDetailScreen und ermöglicht Navigation per SavedDetailRoute
+// (NavController in AppStart). Das Event wird im Screen selbst aus dem ViewModel geladen.
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun SavedEventDetailScreen(
-    eventId: String,
+    eventId: String,                   // NEU: ID statt Objekt (wie HistoryDetailScreen)
     viewModel: SavedEventsViewModel,
     onBack: () -> Unit
 ) {
-    // UriHandler holen, um Links im Browser zu öffnen
-    val uriHandler = LocalUriHandler.current
+    // Event aus dem kombinierten Flow aktiver Favoriten laden (aktive + vergangene)
+    val activeEvents by viewModel.activeSavedEvents.collectAsState()
+    val pastEvents by viewModel.pastSavedEvents.collectAsState()
 
-    // Event aus dem StateFlow des ViewModels laden
-    val savedEvents by viewModel.savedEvents.collectAsState()
-    val item = savedEvents.find { it.event.eventId == eventId }
+    // Event aus aktiven oder vergangenen Favoriten suchen
+    val eventWithLineup: EventWithLineup? = remember(activeEvents, pastEvents, eventId) {
+        activeEvents.find { it.event.eventId == eventId }
+            ?: pastEvents.find { it.event.eventId == eventId }
+    }
 
-    // Falls das Event nicht mehr vorhanden ist (z.B. nach Löschen), zurück navigieren
-    if (item == null) {
+    // Falls das Event nicht (mehr) gefunden wird, zurücknavigieren
+    if (eventWithLineup == null) {
         onBack()
         return
     }
 
-    val event = item.event
-    val lineup = item.lineup
+    val event = eventWithLineup.event
+    val lineup = eventWithLineup.lineup
 
-    // Datums- und Zeitformatierung
+    // Lokaler State für das Popup und die Animationen
+    var showDialog by remember { mutableStateOf(false) }
+    var isRotated by remember { mutableStateOf(false) }
+    var isFavorite by remember { mutableStateOf(true) } // Startet Gelb
+
+    val coroutineScope = rememberCoroutineScope()
+
+    // Rotations-Animation (0 bis 360 Grad)
+    val rotation by animateFloatAsState(
+        targetValue = if (isRotated) 360f else 0f,
+        animationSpec = tween(durationMillis = 500),
+        label = "ButtonRotation"
+    )
+
+    // Farbanimation (Gelb zu Grau)
+    val animatedStarColor by animateColorAsState(
+        targetValue = if (isFavorite) Color.Yellow else Color.Gray,
+        animationSpec = tween(durationMillis = 300),
+        label = "StarColor"
+    )
+
     val zonedDateStartTime = ZonedDateTime.parse(event.startTime)
-    val dateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy", Locale.GERMANY)
-    val timeFormatter = DateTimeFormatter.ofPattern("HH:mm", Locale.GERMANY)
+    val dateFormatter = remember { DateTimeFormatter.ofPattern("dd.MM.yyyy", Locale.GERMANY) }
+    val timeFormatter = remember { DateTimeFormatter.ofPattern("HH:mm", Locale.GERMANY) }
     val startDateString = zonedDateStartTime.format(dateFormatter)
     val startTimeString = zonedDateStartTime.format(timeFormatter)
-    val zonedDateEndTime = ZonedDateTime.parse(event.endTime)
-    val endTimeString = zonedDateEndTime.format(timeFormatter)
+    val endTimeString = ZonedDateTime.parse(event.endTime).format(timeFormatter)
+
+    // -------- Bestätigungs-Popup --------
+    if (showDialog) {
+        AlertDialog(
+            onDismissRequest = { showDialog = false },
+            title = { Text("Event entfernen?") },
+            text = { Text("Bist du dir sicher? Das Event wird aus deinen gespeicherten Events gelöscht.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDialog = false
+                        coroutineScope.launch {
+                            // 1. Zweite Drehung starten & Farbe wird grau
+                            isRotated = !isRotated
+                            isFavorite = false
+
+                            // 500ms warten, damit die Drehung flüssig durchläuft
+                            delay(500)
+
+                            // 2. Repository/ViewModel Logik mit der korrekten ID feuern
+                            viewModel.removeFavorite(event.eventId)
+
+                            // 3. Zurück zur Listenansicht springen
+                            onBack()
+                        }
+                    }
+                ) {
+                    Text("Ja, löschen", color = Color.Red)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDialog = false }) {
+                    Text("Abbrechen")
+                }
+            }
+        )
+    }
 
     Column {
-        // -------- Kopfzeile: Zurück + Entfavorisieren --------
+        // -------- Kopfzeile --------
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -99,16 +144,20 @@ fun SavedEventDetailScreen(
                 icon = Icons.Rounded.ArrowBackIosNew,
                 iconColor = Color.White
             )
-            // Stern-Button: bereits gespeichert → grün; erneutes Tippen entfernt aus Favoriten
+
+            // Animierter Favoriten-Button
             StyledIconButton(
-                onClick = { viewModel.removeEventFromFavorites(eventId) },
+                modifier = Modifier.rotate(rotation),
+                onClick = {
+                    isRotated = !isRotated // Erste Drehung beim Click
+                    showDialog = true      // Dialog zeigen
+                },
                 icon = Icons.Rounded.Star,
-                iconColor = Color.Green
+                iconColor = animatedStarColor
             )
         }
 
         LazyColumn(modifier = Modifier.fillMaxSize()) {
-
             // -------- Flyer --------
             item {
                 Row(
@@ -136,7 +185,6 @@ fun SavedEventDetailScreen(
                         .padding(8.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // Titel
                     Text(
                         event.name,
                         color = Color.LightGray,
@@ -145,38 +193,22 @@ fun SavedEventDetailScreen(
                         textAlign = TextAlign.Center
                     )
 
-                    // Datum
-                    Row(
-                        Modifier.fillMaxWidth().padding(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+                    Row(Modifier.fillMaxWidth().padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Outlined.CalendarToday, "Datum", tint = Color.White, modifier = Modifier.size(25.dp))
                         Text(startDateString, color = Color.White, fontSize = 20.sp, modifier = Modifier.padding(horizontal = 8.dp))
                     }
 
-                    // Uhrzeit
-                    Row(
-                        Modifier.fillMaxWidth().padding(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+                    Row(Modifier.fillMaxWidth().padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Outlined.AccessTime, "Uhrzeit", tint = Color.White, modifier = Modifier.size(25.dp))
                         Text("$startTimeString - $endTimeString", color = Color.White, fontSize = 20.sp, modifier = Modifier.padding(horizontal = 8.dp))
                     }
 
-                    // Location
-                    Row(
-                        Modifier.fillMaxWidth().padding(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+                    Row(Modifier.fillMaxWidth().padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Outlined.LocationOn, "Ort", tint = Color.White, modifier = Modifier.size(25.dp))
                         Text(event.venueName, color = Color.White, fontSize = 20.sp, modifier = Modifier.padding(horizontal = 8.dp))
                     }
 
-                    // Preis
-                    Row(
-                        Modifier.fillMaxWidth().padding(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+                    Row(Modifier.fillMaxWidth().padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Outlined.Euro, "Preis", tint = Color.White, modifier = Modifier.size(25.dp))
                         Text(
                             if (event.price != 0.0) "${event.price.roundToInt()}€" else "free",
@@ -186,48 +218,13 @@ fun SavedEventDetailScreen(
                             modifier = Modifier.padding(horizontal = 8.dp)
                         )
                     }
-
-                    // -------- LINK / MEHR INFOS --------
-                    if (!event.eventId.isNullOrBlank()) {
-                        Row(
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(8.dp)
-                                .clip(RoundedCornerShape(4.dp))
-                                .clickable {
-                                    uriHandler.openUri(event.eventId.trim())
-                                },
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.Link,
-                                contentDescription = "Link Icon",
-                                tint = Color(0xFF64B5F6),
-                                modifier = Modifier.size(25.dp)
-                            )
-                            Text(
-                                text = "mehr Infos",
-                                color = Color(0xFF64B5F6),
-                                fontSize = 20.sp,
-                                fontWeight = FontWeight.Bold,
-                                textDecoration = TextDecoration.Underline,
-                                modifier = Modifier.padding(horizontal = 8.dp)
-                            )
-                        }
-                    }
                 }
             }
 
-            // -------- Lineup mit Like-Funktion --------
+            // -------- Lineup --------
             item {
                 Column(modifier = Modifier.padding(8.dp)) {
-                    Text(
-                        "LINEUP",
-                        color = Color.LightGray,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 25.sp,
-                        fontStyle = FontStyle.Italic
-                    )
+                    Text("LINEUP", color = Color.LightGray, fontWeight = FontWeight.Bold, fontSize = 25.sp, fontStyle = FontStyle.Italic)
                     FlowRow(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -235,19 +232,9 @@ fun SavedEventDetailScreen(
                     ) {
                         lineup.forEach { artist ->
                             val borderColor = if (artist.iLike) Color.Red else Color.White
-
                             Card(
-                                colors = CardDefaults.cardColors(
-                                    containerColor = Color.Transparent,
-                                    contentColor = Color.White
-                                ),
-                                modifier = Modifier
-                                    .padding(4.dp)
-                                    .border(
-                                        width = 1.dp,
-                                        color = borderColor,
-                                        shape = RoundedCornerShape(10.dp)
-                                    )
+                                colors = CardDefaults.cardColors(containerColor = Color.Transparent, contentColor = Color.White),
+                                modifier = Modifier.padding(4.dp).border(width = 1.dp, color = borderColor, shape = RoundedCornerShape(10.dp))
                             ) {
                                 Row(
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
@@ -256,12 +243,7 @@ fun SavedEventDetailScreen(
                                 ) {
                                     Text(artist.name)
                                     if (artist.iLike) {
-                                        Icon(
-                                            imageVector = Icons.Filled.Favorite,
-                                            contentDescription = "Liked",
-                                            tint = Color.Red,
-                                            modifier = Modifier.size(14.dp)
-                                        )
+                                        Icon(Icons.Filled.Favorite, "Liked", tint = Color.Red, modifier = Modifier.size(14.dp))
                                     }
                                 }
                             }
@@ -272,18 +254,8 @@ fun SavedEventDetailScreen(
 
             // -------- Beschreibung --------
             item {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(8.dp)
-                ) {
-                    Text(
-                        "BESCHREIBUNG",
-                        color = Color.LightGray,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 25.sp,
-                        fontStyle = FontStyle.Italic
-                    )
+                Column(modifier = Modifier.fillMaxWidth().padding(8.dp)) {
+                    Text("BESCHREIBUNG", color = Color.LightGray, fontWeight = FontWeight.Bold, fontSize = 25.sp, fontStyle = FontStyle.Italic)
                     Text(event.description, color = Color.White)
                 }
             }

@@ -67,10 +67,13 @@ interface EventDao {
     @Query("SELECT * FROM artists WHERE iLike = 1")
     fun getLikedArtists(): Flow<List<ArtistEntity>>
 
-    // Prüft, ob ein Event bereits als Favorit gespeichert ist
-    @Query("SELECT COUNT(*) FROM events WHERE eventId = :eventId")
-    suspend fun isEventSaved(eventId: String): Int
+    @Query("UPDATE events SET isFavorite = :isFavorite WHERE eventId = :eventId")
+    suspend fun updateFavoriteStatus(eventId: String, isFavorite: Boolean)
 
+    // GEÄNDERT: Ein Event gilt jetzt auf der Detailseite als "gespeichert/Herz aktiv",
+    // wenn isFavorite explizit true ist
+    @Query("SELECT COUNT(*) FROM events WHERE eventId = :eventId AND isFavorite = 1")
+    suspend fun isEventSaved(eventId: String): Int
     // Setzt das iWasThere-Flag direkt per SQL — kein Lesen + Kopieren der Entity nötig
     @Query("UPDATE events SET iWasThere = :iWasThere WHERE eventId = :eventId")
     suspend fun updateAttendance(eventId: String, iWasThere: Boolean)

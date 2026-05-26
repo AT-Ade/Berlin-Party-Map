@@ -132,11 +132,12 @@ fun AppStart(
             composable<SavedRoute> {
                 SavedEventsScreen(
                     viewModel = savedEventsViewModel,
+                    // GEÄNDERT: Navigation per NavController statt intern im Screen
                     onEventClick = { eventId -> navController.navigate(SavedDetailRoute(eventId)) }
                 )
             }
 
-            // Detail-Ansicht für ein favorisiertes Event
+            // NEU: Detail-Ansicht für ein gespeichertes/favorisiertes Event
             composable<SavedDetailRoute> { backStackEntry ->
                 val route = backStackEntry.toRoute<SavedDetailRoute>()
                 SavedEventDetailScreen(
