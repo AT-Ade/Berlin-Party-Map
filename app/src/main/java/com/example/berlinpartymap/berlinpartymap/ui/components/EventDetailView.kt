@@ -237,7 +237,8 @@ fun EventDetailView(
                             fontWeight = FontWeight.Bold,
                             fontStyle = FontStyle.Italic,
                             fontSize = 20.sp,
-                            modifier = Modifier.padding(horizontal = 8.dp)
+                            modifier = Modifier.padding(horizontal = 8.dp),
+                            color = Color.White
                         )
                     }
 

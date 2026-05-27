@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
@@ -12,6 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.example.berlinpartymap.ui.AppStart
+import com.example.berlinpartymap.ui.components.Background
 import com.example.berlinpartymap.ui.map.MapScreen
 import com.example.berlinpartymap.ui.theme.MyApplicationTheme
 import org.osmdroid.config.Configuration
@@ -32,8 +34,14 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             MyApplicationTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    AppStart(modifier = Modifier.padding(innerPadding))
+                Box(Modifier.fillMaxSize()) {
+                    Background()
+                    Scaffold(
+                        containerColor = androidx.compose.ui.graphics.Color.Black.copy(0.9f),
+                        modifier = Modifier.fillMaxSize()
+                    ) { innerPadding ->
+                        AppStart(modifier = Modifier.padding(innerPadding))
+                    }
                 }
             }
         }

@@ -94,7 +94,8 @@ fun PartyHistoryScreen(
         ) {
             Text(
                 text = "Besuchte Events",
-                style = MaterialTheme.typography.titleLarge
+                style = MaterialTheme.typography.titleLarge,
+                color = Color.White
             )
 
             // Box hält das Dropdown-Menü an der richtigen Position fixiert

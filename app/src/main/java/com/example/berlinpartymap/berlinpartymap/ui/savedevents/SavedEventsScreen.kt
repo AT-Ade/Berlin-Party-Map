@@ -52,7 +52,8 @@ fun SavedEventsScreen(
         ) {
             Text(
                 text = "Meine gespeicherten Events",
-                style = MaterialTheme.typography.titleLarge
+                style = MaterialTheme.typography.titleLarge,
+                color = Color.White
             )
 
             // Box hält das Dropdown an der richtigen Position

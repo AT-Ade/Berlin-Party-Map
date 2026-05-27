@@ -1,5 +1,6 @@
 package com.example.berlinpartymap.ui.partyhistory
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -54,9 +55,12 @@ fun HistoryEventListItem(
         onClick = onClick,
         modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = Color.LightGray.copy(0.3f),
+            containerColor = Color.DarkGray.copy(0.6f),
             contentColor = Color.White
-        )
+        ),
+        border = BorderStroke(
+            width = 1.dp,
+            color = Color.LightGray.copy(0.3f))
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically

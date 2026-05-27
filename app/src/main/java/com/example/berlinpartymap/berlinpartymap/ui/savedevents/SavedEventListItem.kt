@@ -1,5 +1,7 @@
 package com.example.berlinpartymap.ui.savedevents
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.filled.Favorite
@@ -9,6 +11,7 @@ import com.example.berlinpartymap.data.local.EventEntity
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -29,6 +32,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
@@ -66,12 +70,15 @@ fun SavedEventListItem(
             //.padding(start = 16.dp, end = 16.dp, top = 8.dp)
             .fillMaxWidth(1f),
         colors = CardDefaults.cardColors(
-            containerColor = Color.LightGray.copy(0.3f),
+            containerColor = Color.DarkGray.copy(0.6f),
             contentColor = Color.White
-        )
+        ),
+        border = BorderStroke(
+            width = 1.dp,
+            color = Color.LightGray.copy(0.3f))
     ) {
         Row(
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
         ){
             AsyncImage(
                 model = event.flyerURL,
@@ -88,11 +95,13 @@ fun SavedEventListItem(
 
             }
             Column(
-                modifier = Modifier.padding(8.dp).weight(1f)
+                modifier = Modifier.padding(8.dp).weight(1f).height(95.dp),
+                verticalArrangement = Arrangement.SpaceEvenly
 
             ) {
                 Text(event.venueName, fontWeight = FontWeight.Bold)
-                Text(event.name)
+                Text(event.name,
+                    maxLines = 2, overflow = TextOverflow.Ellipsis)
 
                 Row(
                     modifier = Modifier,
