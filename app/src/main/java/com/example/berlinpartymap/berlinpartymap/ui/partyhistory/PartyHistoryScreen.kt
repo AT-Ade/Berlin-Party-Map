@@ -160,6 +160,20 @@ fun PartyHistoryScreen(
                             }
                         }
                     )
+
+                    // -------- HIER IST DER NEUE EINTRAG --------
+                    DropdownMenuItem(
+                        text = { Text("Gelikete Artists zuerst") },
+                        onClick = {
+                            viewModel.setSortOrder(HistorySortOrder.LIKED_ARTISTS)
+                            showSortMenu = false
+                        },
+                        trailingIcon = {
+                            if (currentSortOrder == HistorySortOrder.LIKED_ARTISTS) {
+                                Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(16.dp))
+                            }
+                        }
+                    )
                 }
             }
         }
@@ -177,9 +191,11 @@ fun PartyHistoryScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items(visitedEvents) { item ->
-                    SavedEventListItem(
+                    HistoryEventListItem(
                         event = item.event,
-                        onClick = { onEventClick(item.event.eventId) }
+                        onClick = { onEventClick(item.event.eventId) },
+                        // Zählt alle Künstler im Lineup dieses Events, bei denen iLike == true ist
+                        likedArtistsCount = item.lineup.count { it.iLike }
                     )
                 }
             }

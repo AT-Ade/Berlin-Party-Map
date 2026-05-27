@@ -27,7 +27,7 @@ fun MapScreen(
     eventViewModel: EventViewModel = koinViewModel(),
     savedEventsViewModel: SavedEventsViewModel = koinViewModel()
 ) {
-    val events by eventViewModel.events.collectAsState()
+    val events by eventViewModel.sortedEvents.collectAsState()
     val eventFeatures by eventViewModel.eventFeatures.collectAsState()
     val selectedEvent by eventViewModel.selectedEvent.collectAsState()
     val highlightedEvent by eventViewModel.highlightedEvent.collectAsState()
@@ -35,8 +35,10 @@ fun MapScreen(
     val cameraTarget by eventViewModel.cameraTarget.collectAsState()
     val selectedDate by eventViewModel.selectedDate.collectAsState()
     val uiState by eventViewModel.uiState.collectAsState()
+    val sortByLikes by eventViewModel.sortByLikes.collectAsState()
 
-    val savedEventsWithLineup by savedEventsViewModel.savedEvents.collectAsState()
+// NEU
+    val savedEventsWithLineup by savedEventsViewModel.allSavedEventsIncludingHistory.collectAsState()
     var mapListToggle by remember { mutableStateOf(true) }
     var showDatePicker by remember { mutableStateOf(false) }
 
@@ -53,6 +55,8 @@ fun MapScreen(
         animationSpec = tween(250, easing = FastOutSlowInEasing),
         label = "ListWeightAnimation"
     )
+
+
 
     val mapElevation by animateDpAsState(targetValue = if (mapListToggle) 20.dp else 5.dp, label = "MapElevation")
     val listElevation by animateDpAsState(targetValue = if (!mapListToggle) 20.dp else 5.dp, label = "ListElevation")
@@ -105,6 +109,10 @@ fun MapScreen(
                 .map { artistEntity -> artistEntity.name }
                 .toSet()
         }
+    }
+
+    LaunchedEffect(likedArtistNames) {
+        eventViewModel.updateLikedArtistNames(likedArtistNames)
     }
 
     // -------- UI --------
@@ -188,6 +196,8 @@ fun MapScreen(
                 },
                 isSaved = isCurrentEventSaved,
                 likedArtistNames = likedArtistNames,
+                sortByLikes = sortByLikes,
+                onSortToggle = { eventViewModel.toggleSortMode() },
                 modifier = Modifier
                     .weight(listWeight)
                     .fillMaxWidth()

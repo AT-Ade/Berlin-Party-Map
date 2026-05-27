@@ -78,6 +78,31 @@ class EventViewModel(
     private val _eventSelected = MutableStateFlow(false)
     val eventSelected = _eventSelected.asStateFlow()
 
+    private val _sortByLikes = MutableStateFlow(false)
+    val sortByLikes = _sortByLikes.asStateFlow()
+
+    private val _likedArtistNames = MutableStateFlow<Set<String>>(emptySet())
+
+    val sortedEvents: StateFlow<List<EventDto>> = combine(_events, _sortByLikes, _likedArtistNames) { eventList, byLikes, likedNames ->
+        if (byLikes) {
+            eventList.sortedWith(
+                compareByDescending<EventDto> { event ->
+                    event.lineup.count { likedNames.contains(it.name) }
+                }.thenBy { it.price }
+            )
+        } else {
+            eventList.sortedBy { it.price }
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    fun toggleSortMode() {
+        _sortByLikes.value = !_sortByLikes.value
+    }
+
+    fun updateLikedArtistNames(names: Set<String>) {
+        _likedArtistNames.value = names
+    }
+
     private val _cameraTarget = MutableStateFlow<Pair<Double, Double>?>(null)
     val cameraTarget = _cameraTarget.asStateFlow()
 

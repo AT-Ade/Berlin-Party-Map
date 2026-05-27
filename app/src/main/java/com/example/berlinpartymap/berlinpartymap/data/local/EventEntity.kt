@@ -6,7 +6,7 @@ import androidx.room.PrimaryKey
 @Entity(tableName = "events")
 data class EventEntity(
     @PrimaryKey
-    val eventId: String, // URL oder UUID.toString()
+    val eventId: String,
     val name: String,
     val venueName: String,
     val venueAddress: String,
@@ -18,5 +18,6 @@ data class EventEntity(
     val flyerURL: String,
     val price: Double,
     val rating: Int? = null,
-    val iWasThere: Boolean? = null
+    val iWasThere: Boolean? = null,
+    val isFavorite: Boolean = true // NEU: Standardmäßig true beim Speichern
 )

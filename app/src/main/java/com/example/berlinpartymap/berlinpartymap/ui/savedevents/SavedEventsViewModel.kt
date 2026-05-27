@@ -8,66 +8,91 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.time.ZonedDateTime
 
-// 1. Definition der Sortier-Optionen für die gespeicherten Events
-enum class SavedEventsSortOrder {
-    DATE_ASC,            // Chronologisch (nächstes Event zuerst)
-    PRICE_ASC,           // Günstigste zuerst (Gratis/Keine Angabe unten)
-    PRICE_DESC,          // Teuerste zuerst (Gratis/Keine Angabe unten)
-    LIKED_ARTISTS_DESC   // Meiste gelikte Artists im Lineup zuerst
+enum class FavoritesSortOrder {
+    DATE_ASC,
+    DATE_DESC,
+    PRICE_ASC,
+    PRICE_DESC,
+    LIKED_ARTISTS  // Meiste gelikte Artists zuerst, dann nach Preis
 }
 
 class SavedEventsViewModel(
     private val repository: EventRepository
 ) : ViewModel() {
 
-    // 2. State für die aktuelle Sortierung (Standard: Nach Datum)
-    private val _currentSortOrder = MutableStateFlow(SavedEventsSortOrder.DATE_ASC)
-    val currentSortOrder: StateFlow<SavedEventsSortOrder> = _currentSortOrder
+    private val _currentSortOrder = MutableStateFlow(FavoritesSortOrder.DATE_ASC)
+    val currentSortOrder: StateFlow<FavoritesSortOrder> = _currentSortOrder
 
-    // 3. Kombinieren des Datenbank-Flows mit unserem Sortier-Zustand
-    val savedEvents: StateFlow<List<EventWithLineup>> = repository.getAllSavedEvents()
-        .combine(_currentSortOrder) { eventList, sortOrder ->
-            when (sortOrder) {
-                // Nach Datum aufsteigend sortieren
-                SavedEventsSortOrder.DATE_ASC -> eventList.sortedBy { it.event.startTime }
+    private val allDbEvents: StateFlow<List<EventWithLineup>> = repository.getAllSavedEvents()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-                // Preis aufsteigend (Günstigste zuerst, unbewertet/null am Ende)
-                SavedEventsSortOrder.PRICE_ASC -> eventList.sortedWith(
-                    compareBy(nullsLast()) { it.event.price }
-                )
+    val allSavedEventsIncludingHistory: StateFlow<List<EventWithLineup>> = allDbEvents
+        .map { list -> list.filter { it.event.isFavorite } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-                // Preis absteigend (Teuerste zuerst, unbewertet/null am Ende)
-                SavedEventsSortOrder.PRICE_DESC -> eventList.sortedWith(
-                    compareBy(nullsLast(reverseOrder())) { it.event.price }
-                )
-
-                // Meiste gelikte Artists zuerst
-                // Wir zählen, wie viele Artists im `lineup` das Flag `isLiked == true` haben
-                SavedEventsSortOrder.LIKED_ARTISTS_DESC -> eventList.sortedByDescending { item ->
-                    item.lineup.count { artist -> artist.iLike }
-                }
-            }
+    // Liked artist names werden aus den gespeicherten Events selbst abgeleitet
+    val likedArtistNames: StateFlow<Set<String>> = allDbEvents
+        .map { list ->
+            list.flatMap { it.lineup }
+                .filter { it.iLike }
+                .map { it.name }
+                .toSet()
         }
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = emptyList()
-        )
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
 
-    // 4. Setter für die UI
-    fun setSortOrder(newOrder: SavedEventsSortOrder) {
+    val activeSavedEvents: StateFlow<List<EventWithLineup>> = combine(
+        allDbEvents, _currentSortOrder, likedArtistNames
+    ) { list, sortOrder, likedNames ->
+        list.filter { it.event.isFavorite && !isInPast(it.event.endTime) }
+            .applySortOrder(sortOrder, likedNames)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val savedEvents: StateFlow<List<EventWithLineup>> = activeSavedEvents
+
+    val pastSavedEvents: StateFlow<List<EventWithLineup>> = combine(
+        allDbEvents, _currentSortOrder, likedArtistNames
+    ) { list, sortOrder, likedNames ->
+        list.filter { it.event.isFavorite && isInPast(it.event.endTime) }
+            .applySortOrder(sortOrder, likedNames)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    fun setSortOrder(newOrder: FavoritesSortOrder) {
         _currentSortOrder.value = newOrder
     }
 
-    fun removeEventFromFavorites(eventId: String) {
+    fun removeFavorite(eventId: String) {
         viewModelScope.launch {
-            // Entweder löschst du es komplett oder setzt iWasThere / saved zurück,
-            // je nachdem wie deine Repository-Methode benannt ist:
-            repository.updateEventAttendance(eventId, iWasThere = false)
-            // ODER falls du ein direktes Löschen hast: repository.deleteSavedEvent(eventId)
+            repository.removeEventFromFavorites(eventId)
+        }
+    }
+
+    private fun List<EventWithLineup>.applySortOrder(
+        sortOrder: FavoritesSortOrder,
+        likedNames: Set<String>
+    ): List<EventWithLineup> {
+        return when (sortOrder) {
+            FavoritesSortOrder.DATE_ASC      -> sortedBy { it.event.startTime }
+            FavoritesSortOrder.DATE_DESC     -> sortedByDescending { it.event.startTime }
+            FavoritesSortOrder.PRICE_ASC     -> sortedBy { it.event.price }
+            FavoritesSortOrder.PRICE_DESC    -> sortedByDescending { it.event.price }
+            FavoritesSortOrder.LIKED_ARTISTS -> sortedWith(
+                compareByDescending<EventWithLineup> { ewl ->
+                    ewl.lineup.count { likedNames.contains(it.name) }
+                }.thenBy { it.event.price }
+            )
+        }
+    }
+
+    private fun isInPast(endTime: String): Boolean {
+        return try {
+            ZonedDateTime.parse(endTime).isBefore(ZonedDateTime.now())
+        } catch (e: Exception) {
+            false
         }
     }
 }

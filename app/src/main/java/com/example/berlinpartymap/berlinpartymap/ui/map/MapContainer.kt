@@ -190,7 +190,7 @@ fun MapContainer(
                     .clip(RoundedCornerShape(10.dp))
                     .background(
                         brush = Brush.verticalGradient(
-                            colors = if (selectedEvent == null) listOf(Color.White, Color.Transparent, Color.Transparent)
+                            colors = if (selectedEvent == null) listOf(Color.LightGray, Color.Transparent, Color.Transparent)
                             else listOf(Color.Transparent, Color.Transparent)
                         ),
                         shape = RoundedCornerShape(10.dp)
