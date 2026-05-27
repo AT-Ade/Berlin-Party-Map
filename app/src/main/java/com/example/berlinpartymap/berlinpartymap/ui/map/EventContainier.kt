@@ -1,6 +1,11 @@
 package com.example.berlinpartymap.ui.map
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.ui.draw.rotate
+import androidx.compose.material.icons.filled.Euro
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.core.tween
@@ -32,6 +37,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -67,8 +73,15 @@ fun EventContainer(
     onBack: () -> Unit,
     saveButtonclick: (EventDto) -> Unit,
     isSaved: Boolean,
-    likedArtistNames: Set<String>
+    likedArtistNames: Set<String>,
+    sortByLikes: Boolean = false,
+    onSortToggle: () -> Unit
 ) {
+    val sortButtonRotation by animateFloatAsState(
+        targetValue = if (sortByLikes) 360f else 0f,
+        animationSpec = tween(durationMillis = 400),
+        label = "SortButtonRotation"
+    )
     Box(modifier = modifier) {
 
         Column(
@@ -139,6 +152,15 @@ fun EventContainer(
                                 onClick = onNextDate,
                                 icon = Icons.AutoMirrored.Rounded.ArrowForwardIos,
                                 iconColor = Color.White
+                            )
+
+                            StyledIconButton(
+                                modifier = Modifier.rotate(sortButtonRotation),
+                                onClick = onSortToggle,
+                                icon = if (sortByLikes) Icons.Filled.Favorite else Icons.Filled.Euro,
+                                iconColor = if (sortByLikes) Color(0xFFE91E63) else Color(0xFF4CAF50),
+                                iconWidth = 20.dp,
+                                iconHeight = 20.dp
                             )
                         }
 

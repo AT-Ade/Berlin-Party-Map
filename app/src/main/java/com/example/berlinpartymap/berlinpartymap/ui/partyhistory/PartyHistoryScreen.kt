@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -161,6 +160,20 @@ fun PartyHistoryScreen(
                             }
                         }
                     )
+
+                    // -------- HIER IST DER NEUE EINTRAG --------
+                    DropdownMenuItem(
+                        text = { Text("Gelikete Artists zuerst") },
+                        onClick = {
+                            viewModel.setSortOrder(HistorySortOrder.LIKED_ARTISTS)
+                            showSortMenu = false
+                        },
+                        trailingIcon = {
+                            if (currentSortOrder == HistorySortOrder.LIKED_ARTISTS) {
+                                Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(16.dp))
+                            }
+                        }
+                    )
                 }
             }
         }
@@ -169,7 +182,7 @@ fun PartyHistoryScreen(
         if (visitedEvents.isEmpty()) {
             Text(
                 text = "Noch keine besuchten Events.",
-                modifier = Modifier.padding(top = 16.dp).weight(1f),
+                modifier = Modifier.padding(top = 16.dp),
                 fontStyle = FontStyle.Italic
             )
         } else {
@@ -178,9 +191,11 @@ fun PartyHistoryScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items(visitedEvents) { item ->
-                    SavedEventListItem(
+                    HistoryEventListItem(
                         event = item.event,
-                        onClick = { onEventClick(item.event.eventId) }
+                        onClick = { onEventClick(item.event.eventId) },
+                        // Zählt alle Künstler im Lineup dieses Events, bei denen iLike == true ist
+                        likedArtistsCount = item.lineup.count { it.iLike }
                     )
                 }
             }
@@ -192,7 +207,7 @@ fun PartyHistoryScreen(
                 modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
             ) {
                 Text(
-                    (if (pendingCount == 1) "${pendingCount} gespeichertes Event" else "${pendingCount} gespeicherte Events") +" vergangen. Warst du da?",
+                    "${pendingCount} gespeichertes Event vergangen. Warst du da?",
                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                     style = MaterialTheme.typography.bodyMedium
                 )

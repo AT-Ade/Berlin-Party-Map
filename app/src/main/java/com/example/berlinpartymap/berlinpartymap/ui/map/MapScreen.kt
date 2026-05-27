@@ -27,7 +27,7 @@ fun MapScreen(
     eventViewModel: EventViewModel = koinViewModel(),
     savedEventsViewModel: SavedEventsViewModel = koinViewModel()
 ) {
-    val events by eventViewModel.events.collectAsState()
+    val events by eventViewModel.sortedEvents.collectAsState()
     val eventFeatures by eventViewModel.eventFeatures.collectAsState()
     val selectedEvent by eventViewModel.selectedEvent.collectAsState()
     val highlightedEvent by eventViewModel.highlightedEvent.collectAsState()
@@ -35,6 +35,7 @@ fun MapScreen(
     val cameraTarget by eventViewModel.cameraTarget.collectAsState()
     val selectedDate by eventViewModel.selectedDate.collectAsState()
     val uiState by eventViewModel.uiState.collectAsState()
+    val sortByLikes by eventViewModel.sortByLikes.collectAsState()
 
 // NEU
     val savedEventsWithLineup by savedEventsViewModel.allSavedEventsIncludingHistory.collectAsState()
@@ -108,6 +109,10 @@ fun MapScreen(
                 .map { artistEntity -> artistEntity.name }
                 .toSet()
         }
+    }
+
+    LaunchedEffect(likedArtistNames) {
+        eventViewModel.updateLikedArtistNames(likedArtistNames)
     }
 
     // -------- UI --------
@@ -191,6 +196,8 @@ fun MapScreen(
                 },
                 isSaved = isCurrentEventSaved,
                 likedArtistNames = likedArtistNames,
+                sortByLikes = sortByLikes,
+                onSortToggle = { eventViewModel.toggleSortMode() },
                 modifier = Modifier
                     .weight(listWeight)
                     .fillMaxWidth()

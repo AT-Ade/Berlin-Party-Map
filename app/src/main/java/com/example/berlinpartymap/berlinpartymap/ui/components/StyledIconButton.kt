@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 @Composable
@@ -23,7 +24,9 @@ fun StyledIconButton(
     modifier: Modifier = Modifier, // Nimmt jetzt die Animationen auf
     onClick: () -> Unit,
     icon: ImageVector,
-    iconColor: Color
+    iconColor: Color,
+    iconWidth: Dp = 30.dp,
+    iconHeight: Dp = 30.dp
 ) {
     Button(
         onClick = onClick,
@@ -43,7 +46,7 @@ fun StyledIconButton(
         Icon(
             imageVector = icon,
             contentDescription = "Button Icon",
-            modifier = Modifier.size(height = 30.dp, width = 30.dp)
+            modifier = Modifier.size(height = iconHeight, width = iconWidth)
         )
     }
 }

@@ -5,7 +5,10 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Sort
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -16,34 +19,121 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
 import org.koin.androidx.compose.koinViewModel
 
-// GEÄNDERT: onEventClick-Callback hinzugefügt, damit die Navigation per NavController
-// aus AppStart heraus gesteuert wird – analog zu PartyHistoryScreen und EventContainer.
-// Die interne AnimatedContent-Navigation (eventSelected / selectedEvent im ViewModel)
-// wurde entfernt, da sie durch die Route-basierte Navigation ersetzt wird.
+// Navigation per NavController-Callback (analog zu PartyHistoryScreen)
 @Composable
 fun SavedEventsScreen(
     modifier: Modifier = Modifier,
     viewModel: SavedEventsViewModel = koinViewModel(),
-    onEventClick: (String) -> Unit = {}  // NEU: Navigations-Callback mit eventId
+    onEventClick: (String) -> Unit = {}
 ) {
     val activeEvents by viewModel.activeSavedEvents.collectAsState()
     val pastEvents by viewModel.pastSavedEvents.collectAsState()
+    val currentSortOrder by viewModel.currentSortOrder.collectAsState()
+    val likedArtistNames by viewModel.likedArtistNames.collectAsState()
 
     var showPastEvents by remember { mutableStateOf(false) }
+    // Steuert ob das Sortier-Dropdown offen ist – analog zu PartyHistoryScreen
+    var showSortMenu by remember { mutableStateOf(false) }
 
     val arrowRotation by animateFloatAsState(
         targetValue = if (showPastEvents) 180f else 0f,
         label = "ArrowRotation"
     )
 
-    // -------- LISTE DER EVENTS --------
     Column(modifier = modifier.fillMaxSize().padding(16.dp)) {
-        Text(
-            text = "Meine gespeicherten Events",
-            style = MaterialTheme.typography.titleLarge,
-            modifier = Modifier.padding(top = 16.dp, bottom = 16.dp)
-        )
 
+        // -------- Kopfzeile mit Titel und Sortier-Dropdown – analog zu PartyHistoryScreen --------
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 16.dp, bottom = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = "Meine gespeicherten Events",
+                style = MaterialTheme.typography.titleLarge
+            )
+
+            // Box hält das Dropdown an der richtigen Position
+            Box {
+                IconButton(onClick = { showSortMenu = true }) {
+                    Icon(
+                        imageVector = Icons.Filled.Sort,
+                        contentDescription = "Sortieren",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+
+                DropdownMenu(
+                    expanded = showSortMenu,
+                    onDismissRequest = { showSortMenu = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("Datum aufsteigend") },
+                        onClick = {
+                            viewModel.setSortOrder(FavoritesSortOrder.DATE_ASC)
+                            showSortMenu = false
+                        },
+                        trailingIcon = {
+                            if (currentSortOrder == FavoritesSortOrder.DATE_ASC) {
+                                Icon(Icons.Filled.Check, contentDescription = null)
+                            }
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Datum absteigend") },
+                        onClick = {
+                            viewModel.setSortOrder(FavoritesSortOrder.DATE_DESC)
+                            showSortMenu = false
+                        },
+                        trailingIcon = {
+                            if (currentSortOrder == FavoritesSortOrder.DATE_DESC) {
+                                Icon(Icons.Filled.Check, contentDescription = null)
+                            }
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Preis aufsteigend") },
+                        onClick = {
+                            viewModel.setSortOrder(FavoritesSortOrder.PRICE_ASC)
+                            showSortMenu = false
+                        },
+                        trailingIcon = {
+                            if (currentSortOrder == FavoritesSortOrder.PRICE_ASC) {
+                                Icon(Icons.Filled.Check, contentDescription = null)
+                            }
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Preis absteigend") },
+                        onClick = {
+                            viewModel.setSortOrder(FavoritesSortOrder.PRICE_DESC)
+                            showSortMenu = false
+                        },
+                        trailingIcon = {
+                            if (currentSortOrder == FavoritesSortOrder.PRICE_DESC) {
+                                Icon(Icons.Filled.Check, contentDescription = null)
+                            }
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Gelikte Artists") },
+                        onClick = {
+                            viewModel.setSortOrder(FavoritesSortOrder.LIKED_ARTISTS)
+                            showSortMenu = false
+                        },
+                        trailingIcon = {
+                            if (currentSortOrder == FavoritesSortOrder.LIKED_ARTISTS) {
+                                Icon(Icons.Filled.Check, contentDescription = null)
+                            }
+                        }
+                    )
+                }
+            }
+        }
+
+        // -------- Liste --------
         if (activeEvents.isEmpty() && pastEvents.isEmpty()) {
             Text(
                 text = "Noch keine Events gespeichert.",
@@ -68,7 +158,7 @@ fun SavedEventsScreen(
                     items(activeEvents, key = { it.event.eventId }) { item ->
                         SavedEventListItem(
                             event = item.event,
-                            // GEÄNDERT: Navigation per Callback nach oben reichen (wie PartyHistoryScreen)
+                            likedArtistsCount = item.lineup.count { likedArtistNames.contains(it.name) },
                             onClick = { onEventClick(item.event.eventId) }
                         )
                     }
@@ -102,7 +192,7 @@ fun SavedEventsScreen(
                         items(pastEvents, key = { "past_${it.event.eventId}" }) { item ->
                             SavedEventListItem(
                                 event = item.event,
-                                // GEÄNDERT: Navigation per Callback nach oben reichen (wie PartyHistoryScreen)
+                                likedArtistsCount = item.lineup.count { likedArtistNames.contains(it.name) },
                                 onClick = { onEventClick(item.event.eventId) }
                             )
                         }

@@ -13,23 +13,22 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.ZonedDateTime
 
-// Definition der Sortier-Optionen
+// 1. Enum um die neue Option erweitern
 enum class HistorySortOrder {
     DATE_ASC,        // Älteste zuerst
     DATE_DESC,       // Neueste zuerst
-    RATING_ASC,      // Schlechteste Bewertung zuerst (Unbewertet ganz unten)
-    RATING_DESC      // Beste Bewertung zuerst (Unbewertet ganz unten)
+    RATING_ASC,      // Schlechteste Bewertung zuerst
+    RATING_DESC,     // Beste Bewertung zuerst
+    LIKED_ARTISTS    // Meiste gelikte Artists zuerst
 }
 
 class PartyHistoryViewModel(
     private val repository: EventRepository
 ) : ViewModel() {
 
-    // State für die aktuelle Sortierung (Standard: Neueste Partys zuerst)
     private val _currentSortOrder = MutableStateFlow(HistorySortOrder.DATE_DESC)
     val currentSortOrder: StateFlow<HistorySortOrder> = _currentSortOrder
 
-    // Alle Events aus der DB als gemeinsame Basis für alle abgeleiteten Flows
     private val allDbEvents: StateFlow<List<EventWithLineup>> = repository.getAllSavedEvents()
         .stateIn(
             scope = viewModelScope,
@@ -37,16 +36,6 @@ class PartyHistoryViewModel(
             initialValue = emptyList()
         )
 
-    // -----------------------------------------------------------------------
-    // History-Liste: Events bei denen der User bestätigt hat da gewesen zu sein.
-    //
-    // Bedingungen:
-    //   - iWasThere = true       (User hat Haken gedrückt)
-    //   - endTime in Vergangenheit (nur abgeschlossene Events)
-    //
-    // isFavorite spielt hier keine Rolle – auch entfavorisierte Events
-    // bleiben in der History, solange iWasThere=true.
-    // -----------------------------------------------------------------------
     val visitedEvents: StateFlow<List<EventWithLineup>> = allDbEvents
         .map { list ->
             list.filter { it.event.iWasThere == true && isInPast(it.event.endTime) }
@@ -55,19 +44,22 @@ class PartyHistoryViewModel(
             when (sortOrder) {
                 HistorySortOrder.DATE_ASC  -> filteredList.sortedBy { it.event.startTime }
                 HistorySortOrder.DATE_DESC -> filteredList.sortedByDescending { it.event.startTime }
-                // Aufsteigend nach Bewertung, Unbewertete (null) ganz nach unten
                 HistorySortOrder.RATING_ASC -> filteredList.sortedWith(
                     compareBy(nullsLast()) { it.event.rating }
                 )
-                // Absteigend nach Bewertung, Unbewertete (null) trotzdem ganz nach unten
                 HistorySortOrder.RATING_DESC -> filteredList.sortedWith(
                     compareBy(nullsLast(reverseOrder())) { it.event.rating }
+                )
+                // 2. Die neue Sortierlogik einbauen
+                HistorySortOrder.LIKED_ARTISTS -> filteredList.sortedWith(
+                    compareByDescending<EventWithLineup> { ewl ->
+                        ewl.lineup.count { it.iLike }
+                    }.thenByDescending { it.event.startTime } // Bei Gleichstand: Neueste zuerst
                 )
             }
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    // Funktion, um die Sortierung aus der UI heraus zu ändern
     fun setSortOrder(newOrder: HistorySortOrder) {
         _currentSortOrder.value = newOrder
     }

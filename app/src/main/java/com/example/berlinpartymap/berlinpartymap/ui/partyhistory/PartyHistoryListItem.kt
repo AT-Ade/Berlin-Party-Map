@@ -1,70 +1,58 @@
-package com.example.berlinpartymap.ui.savedevents
+package com.example.berlinpartymap.ui.partyhistory
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material3.Icon
-import com.example.berlinpartymap.data.local.ArtistEntity
-import com.example.berlinpartymap.data.local.EventEntity
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material3.Button
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.outlined.StarOutline
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.LocalTextStyle
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.example.berlinpartymap.R
-import com.example.berlinpartymap.data.remote.dto.ArtistDto
-import com.example.berlinpartymap.data.remote.dto.EventDto
+import com.example.berlinpartymap.data.local.EventEntity
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 import kotlin.math.roundToInt
 
 @Composable
-fun SavedEventListItem(
+fun HistoryEventListItem(
     modifier: Modifier = Modifier,
     event: EventEntity,
     likedArtistsCount: Int,
     onClick: () -> Unit,
 ) {
     val zonedDateStartTime = ZonedDateTime.parse(event.startTime)
-    // Format für das Datum (25.04.2026)
     val dateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy", Locale.GERMANY)
-    // Format für die Uhrzeit (23:00)
     val timeFormatter = DateTimeFormatter.ofPattern("HH:mm", Locale.GERMANY)
-    // Anwendung:
-    val startDateString = zonedDateStartTime.format(dateFormatter) // -> Format : "25.04.2026"
-    val startTimeString = zonedDateStartTime.format(timeFormatter) // -> Format : "23:00"
 
-    val zonedDateEndTime = ZonedDateTime.parse(event.endTime)
-    val endDateString = zonedDateEndTime.format(dateFormatter)
-    val endTimeString = zonedDateEndTime.format(timeFormatter)
+    val startDateString = zonedDateStartTime.format(dateFormatter)
+    val startTimeString = zonedDateStartTime.format(timeFormatter)
 
     Card(
         onClick = onClick,
-        modifier = Modifier
-            //.padding(start = 16.dp, end = 16.dp, top = 8.dp)
-            .fillMaxWidth(1f),
+        modifier = modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
             containerColor = Color.LightGray.copy(0.3f),
             contentColor = Color.White
@@ -72,45 +60,66 @@ fun SavedEventListItem(
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically
-        ){
+        ) {
+            // -------- Flyer --------
             AsyncImage(
                 model = event.flyerURL,
                 contentDescription = "${event.name} Flyer",
-                //placeholder = painterResource(R.drawable.placeholderevent),
                 error = painterResource(R.drawable.placeholderevent),
                 modifier = Modifier
                     .padding(16.dp)
                     .size(60.dp),
-                //.clip(CircleShape),
                 contentScale = ContentScale.FillHeight
             )
-            CompositionLocalProvider(LocalTextStyle provides MaterialTheme.typography.bodySmall) {
 
-            }
+            // -------- Details --------
             Column(
-                modifier = Modifier.padding(8.dp).weight(1f)
-
+                verticalArrangement = Arrangement.SpaceEvenly,
+                modifier = Modifier
+                    .padding(vertical = 8.dp)
+                    .height(130.dp)
+                    .weight(1f) // Nimmt den verfügbaren Platz ein, damit die Badges rechts stehen
             ) {
                 Text(event.venueName, fontWeight = FontWeight.Bold)
-                Text(event.name)
+                Text(event.name,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                    )
 
                 Row(
-                    modifier = Modifier,
-                ){
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
                     Text(startDateString, fontWeight = FontWeight.Bold)
                     Text(" | $startTimeString Uhr | ", fontWeight = FontWeight.Bold)
                     Text(
-                        if(event.price != 0.0) "${event.price.roundToInt()}€" else "free",
+                        if (event.price != 0.0) "${event.price.roundToInt()}€" else "free",
                         fontWeight = FontWeight.Bold,
                         fontStyle = FontStyle.Italic
                     )
                 }
 
+                // -------- Sternebewertung --------
+                Row(
+                    modifier = Modifier.padding(top = 4.dp),
+                    horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(2.dp)
+                ) {
+                    val currentRating = event.rating ?: 0
+                    (1..5).forEach { starIndex ->
+                        val isFilled = currentRating >= starIndex
+                        Icon(
+                            imageVector = if (isFilled) Icons.Filled.Star else Icons.Outlined.StarOutline,
+                            contentDescription = "$starIndex Sterne",
+                            tint = if (isFilled) Color(0xFFFFD700) else Color.Gray,
+                            modifier = Modifier.size(16.dp) // Kleinere Sterne für die Listenansicht
+                        )
+                    }
+                }
             }
 
+            // -------- Liked Artists Badge --------
             Box(
                 contentAlignment = Alignment.Center,
-                modifier = Modifier.padding(8.dp)
+                modifier = Modifier.padding(16.dp)
             ) {
                 if (likedArtistsCount > 0) {
                     Icon(
@@ -133,23 +142,23 @@ fun SavedEventListItem(
 
 @Preview(showBackground = true)
 @Composable
-private fun EventListItemPreview() {
-    // Use Theme here
-    SavedEventListItem(
+private fun HistoryEventListItemPreview() {
+    HistoryEventListItem(
         event = EventEntity(
-            name = "Party Berlin",
-            venueName = "Club Berlin",
+            name = "Sisyphos Nacht",
+            venueName = "Sisyphos",
             latitude = 52.4837,
             longitude = 13.4482,
-            startTime = "2026-04-24T16:00:00+02:00",
-            endTime = "2026-04-25T08:00:00+02:00",
-            description = "description",
-            eventId = "https://de.ra.co/events/2385678",
-            flyerURL = "https://imgproxy.ra.co/_/quality:66/aHR0cHM6Ly9pbWFnZXMucmEuY28vZDQ1MDE5YzQwYWQyNGY0YjU0YmU3YWY3NGQzYzAyYThmNGVjYzU0ZC5qcGc=",
-            venueAddress = "Clubstraße 123",
-            price = 25.0
+            startTime = "2026-04-24T23:00:00+02:00",
+            endTime = "2026-04-25T10:00:00+02:00",
+            description = "Tolle Party!",
+            eventId = "123",
+            flyerURL = "",
+            venueAddress = "Hauptstraße 1",
+            price = 20.0,
+            rating = 4 // Test-Rating für die Preview
         ),
         onClick = {},
-        likedArtistsCount = 1
+        likedArtistsCount = 3
     )
 }

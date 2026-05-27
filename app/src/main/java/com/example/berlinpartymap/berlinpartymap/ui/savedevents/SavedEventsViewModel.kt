@@ -7,57 +7,63 @@ import com.example.berlinpartymap.data.repository.EventRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.ZonedDateTime
 
+enum class FavoritesSortOrder {
+    DATE_ASC,
+    DATE_DESC,
+    PRICE_ASC,
+    PRICE_DESC,
+    LIKED_ARTISTS  // Meiste gelikte Artists zuerst, dann nach Preis
+}
+
 class SavedEventsViewModel(
     private val repository: EventRepository
 ) : ViewModel() {
 
-    // Alle Events aus der DB als gemeinsame Basis für alle abgeleiteten Flows
+    private val _currentSortOrder = MutableStateFlow(FavoritesSortOrder.DATE_ASC)
+    val currentSortOrder: StateFlow<FavoritesSortOrder> = _currentSortOrder
+
     private val allDbEvents: StateFlow<List<EventWithLineup>> = repository.getAllSavedEvents()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    // -----------------------------------------------------------------------
-    // Für den MapScreen: isSaved-Prüfung
-    // Ein Event gilt als "favorisiert" (Herz aktiv) wenn isFavorite = true.
-    // Events die nur wegen iWasThere=true in der DB sind zählen NICHT.
-    // -----------------------------------------------------------------------
     val allSavedEventsIncludingHistory: StateFlow<List<EventWithLineup>> = allDbEvents
         .map { list -> list.filter { it.event.isFavorite } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    // -----------------------------------------------------------------------
-    // Für den SavedEventsScreen: Anstehende Favoriten (Zukunft, isFavorite=true)
-    // Zeigt Events die noch nicht stattgefunden haben.
-    // -----------------------------------------------------------------------
-    val activeSavedEvents: StateFlow<List<EventWithLineup>> = allDbEvents
+    // Liked artist names werden aus den gespeicherten Events selbst abgeleitet
+    val likedArtistNames: StateFlow<Set<String>> = allDbEvents
         .map { list ->
-            list.filter { it.event.isFavorite && !isInPast(it.event.endTime) }
+            list.flatMap { it.lineup }
+                .filter { it.iLike }
+                .map { it.name }
+                .toSet()
         }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
 
-    // savedEvents = Alias für activeSavedEvents (wird in SavedEventDetailScreen genutzt)
+    val activeSavedEvents: StateFlow<List<EventWithLineup>> = combine(
+        allDbEvents, _currentSortOrder, likedArtistNames
+    ) { list, sortOrder, likedNames ->
+        list.filter { it.event.isFavorite && !isInPast(it.event.endTime) }
+            .applySortOrder(sortOrder, likedNames)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     val savedEvents: StateFlow<List<EventWithLineup>> = activeSavedEvents
 
-    // -----------------------------------------------------------------------
-    // Für den SavedEventsScreen: Vergangene Favoriten (ausklappbarer Bereich)
-    //
-    // Zeigt Events die:
-    //   - isFavorite = true (der User hat sie bewusst gespeichert)
-    //   - in der Vergangenheit liegen (endTime vergangen)
-    //
-    // BEWUSST werden hier auch Events mit iWasThere=false angezeigt,
-    // weil der User sie weiterhin als Favorit behalten hat.
-    // Der "war ich da"-Status ist separat und stört hier nicht.
-    // -----------------------------------------------------------------------
-    val pastSavedEvents: StateFlow<List<EventWithLineup>> = allDbEvents
-        .map { list ->
-            list.filter { it.event.isFavorite && isInPast(it.event.endTime) }
-        }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val pastSavedEvents: StateFlow<List<EventWithLineup>> = combine(
+        allDbEvents, _currentSortOrder, likedArtistNames
+    ) { list, sortOrder, likedNames ->
+        list.filter { it.event.isFavorite && isInPast(it.event.endTime) }
+            .applySortOrder(sortOrder, likedNames)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    fun setSortOrder(newOrder: FavoritesSortOrder) {
+        _currentSortOrder.value = newOrder
+    }
 
     fun removeFavorite(eventId: String) {
         viewModelScope.launch {
@@ -65,7 +71,23 @@ class SavedEventsViewModel(
         }
     }
 
-    // Hilfsfunktion: true wenn das Event-Ende in der Vergangenheit liegt
+    private fun List<EventWithLineup>.applySortOrder(
+        sortOrder: FavoritesSortOrder,
+        likedNames: Set<String>
+    ): List<EventWithLineup> {
+        return when (sortOrder) {
+            FavoritesSortOrder.DATE_ASC      -> sortedBy { it.event.startTime }
+            FavoritesSortOrder.DATE_DESC     -> sortedByDescending { it.event.startTime }
+            FavoritesSortOrder.PRICE_ASC     -> sortedBy { it.event.price }
+            FavoritesSortOrder.PRICE_DESC    -> sortedByDescending { it.event.price }
+            FavoritesSortOrder.LIKED_ARTISTS -> sortedWith(
+                compareByDescending<EventWithLineup> { ewl ->
+                    ewl.lineup.count { likedNames.contains(it.name) }
+                }.thenBy { it.event.price }
+            )
+        }
+    }
+
     private fun isInPast(endTime: String): Boolean {
         return try {
             ZonedDateTime.parse(endTime).isBefore(ZonedDateTime.now())
