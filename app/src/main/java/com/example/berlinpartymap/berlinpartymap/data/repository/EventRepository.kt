@@ -43,8 +43,5 @@ interface EventRepository{
     // Gibt alle vom Nutzer geliketen Artists zurück
     fun getLikedArtists(): Flow<List<ArtistEntity>>
 
-    // TODO updateEvent
-    // TODO insertAtist
-    // TODO updateAtist
 
 }

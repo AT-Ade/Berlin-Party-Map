@@ -25,7 +25,7 @@ val appModule = module {
         Room.databaseBuilder(androidContext(), EventDatabase::class.java, "event_database")
             // Während der Entwicklung: bei Schema-Konflikt DB löschen und neu erstellen.
             // Für Produktion müsste hier eine Migration stehen.
-            .fallbackToDestructiveMigration()
+            .fallbackToDestructiveMigration(false)
             .build()
     }
     single { get<EventDatabase>().eventDao() }

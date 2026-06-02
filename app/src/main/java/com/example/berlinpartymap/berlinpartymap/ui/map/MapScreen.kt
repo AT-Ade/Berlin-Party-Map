@@ -37,7 +37,6 @@ fun MapScreen(
     val uiState by eventViewModel.uiState.collectAsState()
     val sortByLikes by eventViewModel.sortByLikes.collectAsState()
 
-// NEU
     val savedEventsWithLineup by savedEventsViewModel.allSavedEventsIncludingHistory.collectAsState()
     var mapListToggle by remember { mutableStateOf(true) }
     var showDatePicker by remember { mutableStateOf(false) }
@@ -55,8 +54,6 @@ fun MapScreen(
         animationSpec = tween(250, easing = FastOutSlowInEasing),
         label = "ListWeightAnimation"
     )
-
-
 
     val mapElevation by animateDpAsState(targetValue = if (mapListToggle) 20.dp else 5.dp, label = "MapElevation")
     val listElevation by animateDpAsState(targetValue = if (!mapListToggle) 20.dp else 5.dp, label = "ListElevation")

@@ -139,7 +139,8 @@ fun SavedEventsScreen(
             Text(
                 text = "Noch keine Events gespeichert.",
                 modifier = Modifier.padding(top = 16.dp),
-                fontStyle = FontStyle.Italic
+                fontStyle = FontStyle.Italic,
+                color = Color.White
             )
         } else {
             LazyColumn(
@@ -152,7 +153,8 @@ fun SavedEventsScreen(
                             text = "Keine anstehenden Events.",
                             style = MaterialTheme.typography.bodyMedium,
                             fontStyle = FontStyle.Italic,
-                            modifier = Modifier.padding(vertical = 8.dp)
+                            modifier = Modifier.padding(vertical = 8.dp),
+                            color = Color.White
                         )
                     }
                 } else {

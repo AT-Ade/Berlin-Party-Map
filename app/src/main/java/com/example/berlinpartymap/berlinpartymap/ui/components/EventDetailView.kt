@@ -67,7 +67,7 @@ fun EventDetailView(
         animationSpec = tween(durationMillis = 350)
     )
 
-    // Flüssiger Farbwechsel zum Club-Gelb (0xFFFFD700) oder zurück zu Weiß
+    // Flüssiger Farbwechsel
     val animatedStarColor by animateColorAsState(
         targetValue = if (isSaved) Color(0xFFFFD700) else Color.White,
         animationSpec = tween(durationMillis = 250)

@@ -59,20 +59,7 @@ class EventRepositoryImpl(
     override suspend fun removeEventFromFavorites(eventId: String) {
         val event = dao.getEventById(eventId) ?: return
 
-        // Entscheidungsbaum: Was passiert mit dem DB-Eintrag?
-        //
-        // iWasThere = true  → User war da, Event bleibt für die History sichtbar.
-        //                     Nur isFavorite = false setzen.
-        //
-        // iWasThere = null  → Event liegt entweder noch in der Zukunft, oder es ist
-        //                     vergangen aber noch nicht bestätigt (pending).
-        //                     In beiden Fällen: nur isFavorite = false setzen.
-        //                     Liegt es in der Vergangenheit, fliegt es danach aus dem
-        //                     pendingSheet (weil pendingSheet isFavorite=true voraussetzt).
-        //                     Liegt es in der Zukunft, wird es einfach nicht mehr angezeigt.
-        //
-        // iWasThere = false → User hat aktiv "Nein" bestätigt und entfavorisiert jetzt auch.
-        //                     Kein Grund mehr, den Eintrag zu behalten → komplett löschen.
+
         if (event.iWasThere == false) {
             dao.deleteFullEvent(eventId)
         } else {
@@ -99,7 +86,7 @@ class EventRepositoryImpl(
             if (event != null && event.isFavorite) {
                 dao.updateAttendance(eventId, false)
             } else if (event != null && !event.isFavorite) {
-                // Kein Favorit und nicht besucht → wird nirgendwo mehr gebraucht
+                // Kein Favorit und nicht besucht, wird nirgendwo mehr gebraucht
                 dao.deleteFullEvent(eventId)
             }
         }
@@ -117,5 +104,4 @@ class EventRepositoryImpl(
         return dao.getLikedArtists()
     }
 
-    //TODO update
 }

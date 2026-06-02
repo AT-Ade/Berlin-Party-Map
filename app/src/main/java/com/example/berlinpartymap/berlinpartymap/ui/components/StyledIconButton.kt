@@ -40,7 +40,6 @@ fun StyledIconButton(
             width = 1.dp,
             color = Color.LightGray.copy(0.3f)
         ),
-        // WICHTIG: Verkettet den reingereichten Modifier mit der festen Größe!
         modifier = modifier.size(height = 40.dp, width = 40.dp)
     ) {
         Icon(

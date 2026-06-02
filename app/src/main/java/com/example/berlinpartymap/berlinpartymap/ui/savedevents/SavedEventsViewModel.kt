@@ -18,7 +18,7 @@ enum class FavoritesSortOrder {
     DATE_DESC,
     PRICE_ASC,
     PRICE_DESC,
-    LIKED_ARTISTS  // Meiste gelikte Artists zuerst, dann nach Preis
+    LIKED_ARTISTS
 }
 
 class SavedEventsViewModel(

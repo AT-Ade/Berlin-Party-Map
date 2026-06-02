@@ -46,7 +46,7 @@ data class SavedDetailRoute(val eventId: String)
 @Serializable
 object HistoryRoute
 
-// Detail-Route für History: enthält die eventId als Pfad-Parameter
+
 @Serializable
 data class HistoryDetailRoute(val eventId: String)
 
@@ -73,18 +73,14 @@ fun AppStart(
         containerColor = Color.Transparent,
         bottomBar = {
             NavigationBar (
-                // Color.DarkGray oder Color.Black mit 'copy(alpha = 0.7f)' nutzen.
-                // 0.7f bedeutet 70% Deckkraft (30% Transparenz).
-                // Je niedriger der Wert (z.B. 0.5f), desto durchsichtiger wird es.
+
                 containerColor = Color.Black.copy(alpha = 0.5f),
 
-                // WICHTIG: Setze tonalElevation auf 0.dp, da Material 3 sonst
-                // automatisch eine helle Überlagerungsfarbe (Overlay) berechnet.
                 tonalElevation = 0.dp
             ){
 
                 TabItem.entries.forEach { tabItem ->
-                    // Aktiven Tab anhand der Route bestimmen
+
                     val isSelected = when (tabItem) {
                         TabItem.MAP -> currentRoute?.contains("MapRoute") == true
                         TabItem.FAVOURITES -> currentRoute?.contains("SavedRoute") == true ||
@@ -145,12 +141,11 @@ fun AppStart(
             composable<SavedRoute> {
                 SavedEventsScreen(
                     viewModel = savedEventsViewModel,
-                    // GEÄNDERT: Navigation per NavController statt intern im Screen
                     onEventClick = { eventId -> navController.navigate(SavedDetailRoute(eventId)) }
                 )
             }
 
-            // NEU: Detail-Ansicht für ein gespeichertes/favorisiertes Event
+            // Detail-Ansicht für ein favorisiertes Event
             composable<SavedDetailRoute> { backStackEntry ->
                 val route = backStackEntry.toRoute<SavedDetailRoute>()
                 SavedEventDetailScreen(
