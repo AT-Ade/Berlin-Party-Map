@@ -3,6 +3,7 @@ package com.example.berlinpartymap.di
 import androidx.room.Room
 import com.example.berlinpartymap.data.local.EventDatabase
 import com.example.berlinpartymap.data.remote.api.APIService
+import com.example.berlinpartymap.data.remote.api.MockAPIService
 import com.example.berlinpartymap.data.repository.EventRepository
 import com.example.berlinpartymap.data.repository.EventRepositoryImpl
 import com.example.berlinpartymap.ui.map.EventViewModel
@@ -44,6 +45,9 @@ val appModule = module {
             .build()
     }
     single<APIService> { get<Retrofit>().create(APIService::class.java) }
+
+    // ------------- Mock API -------------
+    single<APIService> { MockAPIService() }
 
 
     // ------------- Repository -------------

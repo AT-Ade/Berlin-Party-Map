@@ -24,7 +24,7 @@ class EventViewModel(
     private val repository: EventRepository
 ) : ViewModel() {
 
-    private val _selectedDate = MutableStateFlow<LocalDate>(LocalDate.now())
+    private val _selectedDate = MutableStateFlow<LocalDate>(LocalDate.of(2026, 5, 29))
     val selectedDate = _selectedDate.asStateFlow()
 
     private val _events = MutableStateFlow<List<EventDto>>(emptyList())
